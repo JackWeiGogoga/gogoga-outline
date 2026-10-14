@@ -5,5 +5,6 @@
   "minAppVersion": "1.0.0",
   "description": "A collapsed heading rail on the edge of the editor: ticks by heading level, expands on hover with titles and section previews, smooth scroll to any heading.",
   "author": "jackwei",
-  "isDesktopOnly": false
+  "isDesktopOnly": false,
+  "authorUrl": "https://github.com/JackWeiGogoga"
 }

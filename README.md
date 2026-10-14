@@ -1,7 +1,7 @@
 # gogoga outline
 
 A heading rail pinned to the edge of the editor, in the style of Codex's
-document navigator. Companion to the [gogoga](../../) theme, but it depends
+document navigator. Companion to the [gogoga](https://github.com/JackWeiGogoga/gogoga-theme) theme, but it depends
 on nothing from the theme and works anywhere.
 
 ## What it does
@@ -92,4 +92,4 @@ the rows render as gray pills.
 
 ## License
 
-AGPL-3.0-or-later, alongside the gogoga theme.
+MIT, see [LICENSE](LICENSE).
