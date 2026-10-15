@@ -11,7 +11,78 @@
  * a 50-heading document behaves the same as a 5-heading one.
  * Companion to the gogoga theme. */
 
-const { Plugin, MarkdownView, PluginSettingTab, Setting } = require('obsidian');
+const { Plugin, MarkdownView, PluginSettingTab, Setting, getLanguage } = require('obsidian');
+
+/* UI strings. Keep the en and zh key sets identical. */
+const STRINGS = {
+  en: {
+    commandToggleOutline: 'Toggle global outline',
+    previewEmpty: 'No content in this section yet',
+    sideName: 'Position',
+    sideDesc: 'Which side of the editor the outline rail sits on.',
+    sideRight: 'Right',
+    sideLeft: 'Left',
+    minHeadingsName: 'Minimum headings',
+    minHeadingsDesc: 'Hide the rail when a note has fewer headings than this.',
+    showPreviewName: 'Show section preview on hover',
+    showPreviewDesc: 'Show the heading and opening lines of the section under the crest.',
+    globalOutlineHeading: 'Global outline',
+    expandModeName: 'Open mode',
+    expandModeDesc: 'Rest the pointer on the rail to open the outline, or open it only with the hotkey.',
+    expandModeDwell: 'Open on rest',
+    expandModeHotkey: 'Hotkey only',
+    dwellDelayName: 'Rest delay',
+    dwellDelayDesc: 'How long the pointer must stay still before the outline opens, in milliseconds.',
+    panelWidthName: 'Panel width',
+    panelMaxLevelName: 'Panel depth',
+    panelMaxLevelDesc: 'Headings deeper than this are left out of the panel but keep their dash on the rail.',
+  },
+  zh: {
+    commandToggleOutline: '展开/收起全局大纲',
+    previewEmpty: '（本节暂无正文）',
+    sideName: '显示位置',
+    sideDesc: '大纲导轨贴在编辑区的哪一侧',
+    sideRight: '右侧',
+    sideLeft: '左侧',
+    minHeadingsName: '最少标题数',
+    minHeadingsDesc: '标题少于这个数量时不显示导轨',
+    showPreviewName: '悬停显示章节预览',
+    showPreviewDesc: '波峰所在的章节显示标题和开头内容',
+    globalOutlineHeading: '全局大纲',
+    expandModeName: '展开方式',
+    expandModeDesc: '鼠标在导轨上停住即可展开；也可以只保留快捷键',
+    expandModeDwell: '停留展开',
+    expandModeHotkey: '仅快捷键',
+    dwellDelayName: '停留延迟',
+    dwellDelayDesc: '鼠标静止多久后展开（毫秒）',
+    panelWidthName: '面板宽度',
+    panelMaxLevelName: '面板展开层级',
+    panelMaxLevelDesc: '比这更深的标题不进入面板，但导轨上仍然有它的刻度',
+  },
+};
+
+let locale = 'en';
+
+function resolveLocale() {
+  let lang = '';
+  try {
+    lang = typeof getLanguage === 'function' ? getLanguage() || '' : '';
+  } catch {
+    lang = '';
+  }
+  locale = lang.toLowerCase().startsWith('zh') ? 'zh' : 'en';
+}
+
+// t('key') or t('key', { name: value }) — replaces {name} placeholders.
+function t(key, vars) {
+  const table = STRINGS[locale] || STRINGS.en;
+  let str = key in table ? table[key] : STRINGS.en[key];
+  if (str === undefined) return key;
+  if (vars) {
+    str = str.replace(/\{(\w+)\}/g, (m, k) => (k in vars ? String(vars[k]) : m));
+  }
+  return str;
+}
 
 // Obsidian exposes the CodeMirror 6 packages to plugins. We only need
 // EditorView.scrollIntoView; fall back to the instance's constructor if
@@ -633,7 +704,7 @@ class Rail {
     });
     this.previewEl.createDiv({
       cls: 'gg-outline-preview-body',
-      text: body || '（本节暂无正文）',
+      text: body || t('previewEmpty'),
     });
     // Center on the crest dash, clamped so the card never leaves the pane.
     const host = this.view.contentEl.getBoundingClientRect();
@@ -661,6 +732,7 @@ class Rail {
 
 module.exports = class GogogaOutline extends Plugin {
   async onload() {
+    resolveLocale();
     this.settings = Object.assign({}, DEFAULTS, await this.loadData());
     this.rails = new Map();
 
@@ -668,7 +740,7 @@ module.exports = class GogogaOutline extends Plugin {
 
     this.addCommand({
       id: 'toggle-global-outline',
-      name: '展开/收起全局大纲',
+      name: t('commandToggleOutline'),
       checkCallback: (checking) => {
         const rail = this.activeRail();
         if (!rail || rail.headings.length < this.settings.minHeadings) return false;
@@ -747,12 +819,12 @@ class GogogaOutlineSettings extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName('显示位置')
-      .setDesc('大纲导轨贴在编辑区的哪一侧')
+      .setName(t('sideName'))
+      .setDesc(t('sideDesc'))
       .addDropdown((d) =>
         d
-          .addOption('right', '右侧')
-          .addOption('left', '左侧')
+          .addOption('right', t('sideRight'))
+          .addOption('left', t('sideLeft'))
           .setValue(this.plugin.settings.side)
           .onChange(async (v) => {
             this.plugin.settings.side = v;
@@ -761,8 +833,8 @@ class GogogaOutlineSettings extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName('最少标题数')
-      .setDesc('标题少于这个数量时不显示导轨')
+      .setName(t('minHeadingsName'))
+      .setDesc(t('minHeadingsDesc'))
       .addSlider((s) =>
         s
           .setLimits(1, 10, 1)
@@ -775,8 +847,8 @@ class GogogaOutlineSettings extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName('悬停显示章节预览')
-      .setDesc('波峰所在的章节显示标题和开头内容')
+      .setName(t('showPreviewName'))
+      .setDesc(t('showPreviewDesc'))
       .addToggle((t) =>
         t.setValue(this.plugin.settings.showPreview).onChange(async (v) => {
           this.plugin.settings.showPreview = v;
@@ -784,15 +856,15 @@ class GogogaOutlineSettings extends PluginSettingTab {
         })
       );
 
-    containerEl.createEl('h3', { text: '全局大纲' });
+    containerEl.createEl('h3', { text: t('globalOutlineHeading') });
 
     new Setting(containerEl)
-      .setName('展开方式')
-      .setDesc('鼠标在导轨上停住即可展开；也可以只保留快捷键')
+      .setName(t('expandModeName'))
+      .setDesc(t('expandModeDesc'))
       .addDropdown((d) =>
         d
-          .addOption('dwell', '停留展开')
-          .addOption('hotkey', '仅快捷键')
+          .addOption('dwell', t('expandModeDwell'))
+          .addOption('hotkey', t('expandModeHotkey'))
           .setValue(this.plugin.settings.expandMode)
           .onChange(async (v) => {
             this.plugin.settings.expandMode = v;
@@ -801,8 +873,8 @@ class GogogaOutlineSettings extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName('停留延迟')
-      .setDesc('鼠标静止多久后展开（毫秒）')
+      .setName(t('dwellDelayName'))
+      .setDesc(t('dwellDelayDesc'))
       .addSlider((s) =>
         s
           .setLimits(200, 1000, 50)
@@ -815,7 +887,7 @@ class GogogaOutlineSettings extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName('面板宽度')
+      .setName(t('panelWidthName'))
       .addSlider((s) =>
         s
           .setLimits(180, 320, 10)
@@ -828,8 +900,8 @@ class GogogaOutlineSettings extends PluginSettingTab {
       );
 
     new Setting(containerEl)
-      .setName('面板展开层级')
-      .setDesc('比这更深的标题不进入面板，但导轨上仍然有它的刻度')
+      .setName(t('panelMaxLevelName'))
+      .setDesc(t('panelMaxLevelDesc'))
       .addSlider((s) =>
         s
           .setLimits(1, 6, 1)

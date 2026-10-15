@@ -6,6 +6,8 @@
 [gogoga](https://github.com/JackWeiGogoga/gogoga-theme) 主题的配套插件，但不依赖主题的任何东西，
 单独使用也没问题。
 
+界面语言跟随 Obsidian 的语言设置，支持简体中文和英文。
+
 ![演示：悬停波浪与章节预览、点击跳转、停留展开全局大纲、键盘导航](https://raw.githubusercontent.com/JackWeiGogoga/gogoga-outline/main/docs/demo.gif)
 
 ## 功能

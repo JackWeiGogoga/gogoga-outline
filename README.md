@@ -6,7 +6,7 @@ A heading rail pinned to the edge of the editor, in the style of Codex's
 document navigator. Companion to the [gogoga](https://github.com/JackWeiGogoga/gogoga-theme) theme, but it depends
 on nothing from the theme and works anywhere.
 
-The interface (command name and settings) is currently in Simplified Chinese.
+The interface follows Obsidian's language setting — English, or Simplified Chinese when Obsidian is set to Chinese.
 
 ![Demo: hover wave with section previews, click to jump, rest to open the full outline, keyboard navigation](https://raw.githubusercontent.com/JackWeiGogoga/gogoga-outline/main/docs/demo.gif)
 
@@ -37,7 +37,7 @@ stagger.
 
 Leaving either the rail or the panel starts a 180ms close timer that entering
 the other cancels, which is what lets you cross the gap between them. Escape
-closes. The `展开/收起全局大纲` (Toggle global outline) command opens it pinned — it stays until you
+closes. The `Toggle global outline` command opens it pinned — it stays until you
 close it, and takes keyboard focus so up/down/enter navigate it.
 
 One rail per open markdown pane; rails follow pane splits and close with
@@ -45,11 +45,11 @@ them.
 
 ## Settings
 
-Side (`显示位置`, left/right), minimum heading count before the rail
-appears (`最少标题数`), whether hovering shows the preview card
-(`悬停显示章节预览`), how the panel opens (`展开方式`: `停留展开` rest vs.
-`仅快捷键` hotkey only) and after how long (`停留延迟`), panel width
-(`面板宽度`), and how deep the panel goes (`面板展开层级`) — headings below
+Side (`Position`, left/right), minimum heading count before the rail
+appears (`Minimum headings`), whether hovering shows the preview card
+(`Show section preview on hover`), how the panel opens (`Open mode`:
+`Open on rest` vs. `Hotkey only`) and after how long (`Rest delay`), panel
+width (`Panel width`), and how deep the panel goes (`Panel depth`) — headings below
 the depth cap are left out of the panel but keep their dash on the rail.
 
 ## Notes on scrolling behavior
