@@ -4,6 +4,8 @@ A heading rail pinned to the edge of the editor, in the style of Codex's
 document navigator. Companion to the [gogoga](https://github.com/JackWeiGogoga/gogoga-theme) theme, but it depends
 on nothing from the theme and works anywhere.
 
+![Demo: hover wave with section previews, click to jump, rest to open the full outline, keyboard navigation](https://raw.githubusercontent.com/JackWeiGogoga/gogoga-outline/main/docs/demo.gif)
+
 ## What it does
 
 - **At rest**: a column of identical short dashes, one per heading. The dash
