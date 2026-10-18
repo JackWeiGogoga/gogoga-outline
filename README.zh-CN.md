@@ -74,6 +74,10 @@
 规则里——否则 `:hover` 那份 `all: unset` 会在悬停时把行自身的样式抹掉，行就会显示成
 灰色胶囊。
 
+## 支持作者
+
+gogoga 系列全部免费开源。如果这个插件帮到了你，欢迎在 [爱发电](https://afdian.com/a/jackweigogoga) 支持一下，Obsidian 社区插件页面里也有赞助按钮。反馈 bug、提建议同样是很大的支持。
+
 ## 许可证
 
 MIT，见 [LICENSE](https://github.com/JackWeiGogoga/gogoga-outline/blob/main/LICENSE)。

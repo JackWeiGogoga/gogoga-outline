@@ -97,6 +97,10 @@ and everything visual lives in a rule one selector deeper — otherwise the
 `:hover` copy of `all: unset` claws the row's own styling back on hover and
 the rows render as gray pills.
 
+## Support
+
+gogoga is free and open source. If this plugin helps you, you can support its development on [afdian (爱发电)](https://afdian.com/a/jackweigogoga). Obsidian also shows a support button for it in the community directory. Bug reports and ideas help just as much.
+
 ## License
 
 MIT, see [LICENSE](https://github.com/JackWeiGogoga/gogoga-outline/blob/main/LICENSE).
