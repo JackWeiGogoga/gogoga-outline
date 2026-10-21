@@ -43,6 +43,16 @@ close it, and takes keyboard focus so up/down/enter navigate it.
 One rail per open markdown pane; rails follow pane splits and close with
 them.
 
+## Focus mode and hover highlight (gogoga theme)
+
+Two commands — `Toggle focus mode` (切换聚焦模式) and `Toggle hover line
+highlight` (切换悬停行强调) — switch on writing effects built into the
+[gogoga theme](https://github.com/JackWeiGogoga/gogoga-theme): in focus mode
+only the paragraph with the cursor stays bright, and hover highlight tints the
+line under the mouse. Bind them in Settings → Hotkeys; the same switches are at
+the bottom of this plugin's settings, and the state survives a restart. Under
+other themes they do nothing.
+
 ## Settings
 
 Side (`Position`, left/right), minimum heading count before the rail

@@ -11,7 +11,7 @@
  * a 50-heading document behaves the same as a 5-heading one.
  * Companion to the gogoga theme. */
 
-const { Plugin, MarkdownView, PluginSettingTab, Setting, getLanguage } = require('obsidian');
+const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, getLanguage } = require('obsidian');
 
 /* UI strings. Keep the en and zh key sets identical. */
 const STRINGS = {
@@ -36,6 +36,18 @@ const STRINGS = {
     panelWidthName: 'Panel width',
     panelMaxLevelName: 'Panel depth',
     panelMaxLevelDesc: 'Headings deeper than this are left out of the panel but keep their dash on the rail.',
+    writingHeading: 'Writing (gogoga theme)',
+    writingDesc: 'These switch on effects built into the gogoga theme and do nothing under other themes. Each also has a command you can bind to a hotkey.',
+    commandToggleFocus: 'Toggle focus mode',
+    commandToggleHover: 'Toggle hover line highlight',
+    focusName: 'Focus mode',
+    focusDesc: 'While typing, only the paragraph with the cursor stays bright; in reading view, the block under the mouse.',
+    hoverName: 'Highlight the line under the mouse',
+    hoverDesc: 'A light accent tint on the line or paragraph under the mouse.',
+    focusOn: 'Focus mode on',
+    focusOff: 'Focus mode off',
+    hoverOn: 'Hover highlight on',
+    hoverOff: 'Hover highlight off',
   },
   zh: {
     commandToggleOutline: '展开/收起全局大纲',
@@ -58,6 +70,18 @@ const STRINGS = {
     panelWidthName: '面板宽度',
     panelMaxLevelName: '面板展开层级',
     panelMaxLevelDesc: '比这更深的标题不进入面板，但导轨上仍然有它的刻度',
+    writingHeading: '写作辅助（gogoga 主题）',
+    writingDesc: '这两项打开的是 gogoga 主题自带的效果，换成别的主题不起作用。每项都有对应的命令，可以在「快捷键」里绑定。',
+    commandToggleFocus: '切换聚焦模式',
+    commandToggleHover: '切换悬停行强调',
+    focusName: '聚焦模式',
+    focusDesc: '写作时只有光标所在的段落保持清晰，其余内容变淡；阅读视图里跟随鼠标所在的段落',
+    hoverName: '悬停行强调',
+    hoverDesc: '鼠标所在的行（段落）带一层淡淡的强调色底',
+    focusOn: '聚焦模式：开',
+    focusOff: '聚焦模式：关',
+    hoverOn: '悬停行强调：开',
+    hoverOff: '悬停行强调：关',
   },
 };
 
@@ -103,6 +127,15 @@ const DEFAULTS = {
   dwellDelay: 800,
   panelWidth: 240,
   panelMaxLevel: 6,
+  focusMode: false,
+  hoverHighlight: false,
+};
+
+/* Writing effects live in the gogoga theme behind these body classes (the
+   same ones its Style Settings toggles use); this plugin only flips them. */
+const WRITING = {
+  focusMode: { cls: 'gogoga-focus-mode', on: 'focusOn', off: 'focusOff' },
+  hoverHighlight: { cls: 'gogoga-hover-highlight', on: 'hoverOn', off: 'hoverOff' },
 };
 
 /* Wave geometry */
@@ -749,6 +782,20 @@ module.exports = class GogogaOutline extends Plugin {
       },
     });
 
+    this.addCommand({
+      id: 'toggle-focus-mode',
+      name: t('commandToggleFocus'),
+      callback: () => this.toggleWriting('focusMode', true),
+    });
+    this.addCommand({
+      id: 'toggle-hover-highlight',
+      name: t('commandToggleHover'),
+      callback: () => this.toggleWriting('hoverHighlight', true),
+    });
+    this.applyWriting();
+    // Popout windows have their own <body>
+    this.registerEvent(this.app.workspace.on('window-open', () => this.applyWriting()));
+
     const sync = () => this.sync();
     this.registerEvent(this.app.workspace.on('layout-change', sync));
     this.registerEvent(this.app.workspace.on('active-leaf-change', sync));
@@ -760,6 +807,34 @@ module.exports = class GogogaOutline extends Plugin {
       })
     );
     this.app.workspace.onLayoutReady(sync);
+  }
+
+  /** Every window's body, main window included. */
+  bodies() {
+    const out = [document.body];
+    this.app.workspace.iterateAllLeaves((leaf) => {
+      const body = leaf.view.containerEl.ownerDocument.body;
+      if (!out.includes(body)) out.push(body);
+    });
+    return out;
+  }
+
+  /* Only adds classes for switches that are on. A switch that is off leaves
+     the class alone, so Style Settings can still turn the effect on. */
+  applyWriting() {
+    for (const [key, w] of Object.entries(WRITING)) {
+      if (this.settings[key]) for (const body of this.bodies()) body.addClass(w.cls);
+    }
+  }
+
+  /** Flip from what is actually showing, whoever turned it on. */
+  async toggleWriting(key, notify) {
+    const w = WRITING[key];
+    const next = !document.body.hasClass(w.cls);
+    for (const body of this.bodies()) body.toggleClass(w.cls, next);
+    this.settings[key] = next;
+    await this.saveData(this.settings);
+    if (notify) new Notice(t(next ? w.on : w.off), 1500);
   }
 
   activeRail() {
@@ -803,6 +878,9 @@ module.exports = class GogogaOutline extends Plugin {
   }
 
   onunload() {
+    for (const [key, w] of Object.entries(WRITING)) {
+      if (this.settings[key]) for (const body of this.bodies()) body.removeClass(w.cls);
+    }
     for (const rail of this.rails.values()) rail.destroy();
     this.rails.clear();
   }
@@ -912,5 +990,22 @@ class GogogaOutlineSettings extends PluginSettingTab {
             await this.plugin.saveSettings();
           })
       );
+
+    containerEl.createEl('h3', { text: t('writingHeading') });
+    containerEl.createEl('p', { text: t('writingDesc'), cls: 'setting-item-description' });
+
+    for (const [key, name, desc] of [
+      ['focusMode', 'focusName', 'focusDesc'],
+      ['hoverHighlight', 'hoverName', 'hoverDesc'],
+    ]) {
+      new Setting(containerEl)
+        .setName(t(name))
+        .setDesc(t(desc))
+        .addToggle((tg) =>
+          tg.setValue(document.body.hasClass(WRITING[key].cls)).onChange(async (v) => {
+            if (v !== document.body.hasClass(WRITING[key].cls)) await this.plugin.toggleWriting(key, false);
+          })
+        );
+    }
   }
 }
