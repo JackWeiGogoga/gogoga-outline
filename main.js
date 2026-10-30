@@ -11,7 +11,7 @@
  * a 50-heading document behaves the same as a 5-heading one.
  * Companion to the gogoga theme. */
 
-const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, getLanguage } = require('obsidian');
+const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, getLanguage, loadMathJax, renderMath, finishRenderMath } = require('obsidian');
 
 /* UI strings. Keep the en and zh key sets identical. */
 const STRINGS = {
@@ -36,6 +36,16 @@ const STRINGS = {
     panelWidthName: 'Panel width',
     panelMaxLevelName: 'Panel depth',
     panelMaxLevelDesc: 'Headings deeper than this are left out of the panel but keep their dash on the rail.',
+    stayOpenName: 'Keep the outline open after clicking',
+    stayOpenDesc: 'Clicking a heading scrolls to it and leaves the outline open. Close it with Esc or the command.',
+    focusBranchName: 'Expand only the current section',
+    focusBranchDesc: 'The section you are reading (or just clicked) is expanded all the way; other sections show only their top headings. Arrows in front of headings expand one level on click, everything on double-click.',
+    otherDepthName: 'Levels shown for other sections',
+    otherDepthDesc: 'With "Expand only the current section" on, how many levels the other sections show.',
+    wrapName: 'Show full titles',
+    wrapDesc: 'Long headings wrap onto more lines instead of being cut off.',
+    expandRow: 'Expand (double-click: expand all)',
+    collapseRow: 'Collapse',
     writingHeading: 'Writing (gogoga theme)',
     writingDesc: 'These switch on effects built into the gogoga theme and do nothing under other themes. Each also has a command you can bind to a hotkey.',
     commandToggleFocus: 'Toggle focus mode',
@@ -70,6 +80,16 @@ const STRINGS = {
     panelWidthName: '面板宽度',
     panelMaxLevelName: '面板展开层级',
     panelMaxLevelDesc: '比这更深的标题不进入面板，但导轨上仍然有它的刻度',
+    stayOpenName: '点击标题后保持大纲打开',
+    stayOpenDesc: '点一个标题跳过去，大纲不收起，按 Esc 或再用一次命令关掉',
+    focusBranchName: '只展开当前章节',
+    focusBranchDesc: '正在看的（或刚点的）那一章全部展开，其他章节只显示大标题；标题前的小箭头单击展开一层、双击全部展开',
+    otherDepthName: '其他章节显示到第几级',
+    otherDepthDesc: '打开「只展开当前章节」后，其他章节显示几级标题',
+    wrapName: '显示完整标题',
+    wrapDesc: '太长的标题换行显示全文，不再省略成一行',
+    expandRow: '展开（双击全部展开）',
+    collapseRow: '收起',
     writingHeading: '写作辅助（gogoga 主题）',
     writingDesc: '这两项打开的是 gogoga 主题自带的效果，换成别的主题不起作用。每项都有对应的命令，可以在「快捷键」里绑定。',
     commandToggleFocus: '切换聚焦模式',
@@ -127,6 +147,10 @@ const DEFAULTS = {
   dwellDelay: 800,
   panelWidth: 240,
   panelMaxLevel: 6,
+  panelStayOpen: false,
+  panelFocusBranch: false,
+  panelOtherDepth: 1,
+  panelWrap: false,
   focusMode: false,
   hoverHighlight: false,
 };
@@ -151,6 +175,31 @@ const CLOSE_GRACE = 180; // ms of slack for crossing the rail/panel gap
 const INDENT_STEP = 12;  // px of indent per heading level
 const STAGGER = 6;       // ms between row fade-ins
 const STAGGER_CAP = 14;  // rows past this all share the last delay
+
+const MATH_RE = /\$\$?(?!\s)([^$\n]+?)(?<!\s)\$\$?(?!\d)/g;
+
+/** A heading's text, with $formulas$ rendered the way the note shows them. */
+function fillHeading(el, text) {
+  el.empty();
+  if (!text.includes('$') || typeof renderMath !== 'function') {
+    el.setText(text);
+    return false;
+  }
+  let last = 0;
+  let math = false;
+  for (const m of text.matchAll(MATH_RE)) {
+    if (m.index > last) el.appendText(text.slice(last, m.index));
+    try {
+      el.append(renderMath(m[1], false));
+      math = true;
+    } catch (e) {
+      el.appendText(m[0]);
+    }
+    last = m.index + m[0].length;
+  }
+  if (last < text.length) el.appendText(text.slice(last));
+  return math;
+}
 
 /** Strip the markdown that would be noise in a short preview. */
 function plainText(md) {
@@ -179,6 +228,13 @@ class Rail {
     this.focusIndex = -1;
     this.expanded = false;
     this.pinned = false;
+    // Branch folding in the panel: parent row of each heading, and the
+    // arrows the user clicked open or shut (they beat the automatic
+    // "current section" expansion). Reset when the note changes.
+    this.parentOf = new Map();
+    this.manualOpen = new Set();
+    this.manualClosed = new Set();
+    this.foldFile = null;
     this.raf = 0;
     this.dwellTimer = 0;
     this.closeTimer = 0;
@@ -208,6 +264,8 @@ class Rail {
 
   apply() {
     this.el.dataset.side = this.plugin.settings.side;
+    this.el.toggleClass('gg-outline-wrap', !!this.plugin.settings.panelWrap);
+    this.el.toggleClass('gg-outline-folding', !!this.plugin.settings.panelFocusBranch);
     this.el.style.setProperty(
       '--gg-panel-width',
       this.plugin.settings.panelWidth + 'px'
@@ -225,6 +283,11 @@ class Rail {
     const file = this.view.file;
     const cache = file ? this.plugin.app.metadataCache.getFileCache(file) : null;
     this.headings = (cache && cache.headings) || [];
+    if (this.foldFile !== file) {
+      this.foldFile = file;
+      this.manualOpen.clear();
+      this.manualClosed.clear();
+    }
 
     this.detachScroll();
     this.listEl.empty();
@@ -259,11 +322,7 @@ class Rail {
       item.addEventListener('click', (e) => {
         e.preventDefault();
         // With the panel open the dashes scrub it; a click commits.
-        // Collapse first — it can hand focus back to the editor, and that
-        // focus change scrolls the caret into view, which would fight the
-        // scroll we are about to start.
-        this.collapse();
-        this.scrollTo(i);
+        this.jumpTo(i);
       });
     });
 
@@ -282,15 +341,24 @@ class Rail {
     const base = this.headings.reduce((m, h) => Math.min(m, h.level), 6);
     const cap = base + this.plugin.settings.panelMaxLevel - 1;
     let shown = 0;
+    let math = false;
+    const stack = [];
+    this.parentOf.clear();
 
     this.headings.forEach((h, i) => {
       if (h.level > cap) return;
       const depth = h.level - base;
+      while (stack.length && this.headings[stack[stack.length - 1]].level >= h.level) stack.pop();
+      this.parentOf.set(i, stack.length ? stack[stack.length - 1] : -1);
+      stack.push(i);
       const row = this.panelListEl.createEl('button', {
         cls: 'gg-outline-row',
-        text: h.heading,
         attr: { type: 'button', 'data-depth': String(Math.min(depth, 3)) },
       });
+      row.dataset.level = String(depth);
+      const arrow = row.createSpan({ cls: 'gg-outline-arrow' });
+      const label = row.createSpan({ cls: 'gg-outline-row-text' });
+      if (fillHeading(label, h.heading)) math = true;
       row.style.paddingInlineStart = 8 + depth * INDENT_STEP + 'px';
       row.style.setProperty(
         '--gg-row-delay',
@@ -300,12 +368,154 @@ class Rail {
       row.addEventListener('mousedown', (e) => e.preventDefault());
       row.addEventListener('click', (e) => {
         e.preventDefault();
-        this.collapse();
-        this.scrollTo(i);
+        this.jumpTo(i);
       });
       row.addEventListener('mouseenter', () => this.setFocusRow(i));
+      // A click toggles one level; a double click opens the whole branch.
+      // The double click's own two clicks toggle twice, ending where they
+      // started, so it only needs to add the rest.
+      arrow.addEventListener('mousedown', (e) => e.preventDefault());
+      arrow.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.toggleRow(i);
+      });
+      arrow.addEventListener('dblclick', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        this.openBranch(i);
+      });
       this.rows.set(i, row);
     });
+    for (const [i, p] of this.parentOf) {
+      if (p >= 0) this.rows.get(p).addClass('has-children');
+    }
+    if (math && typeof finishRenderMath === 'function') finishRenderMath();
+    this.applyFolding();
+  }
+
+  /** Clicking a heading on the rail or in the panel. */
+  jumpTo(index) {
+    if (this.plugin.settings.panelStayOpen && this.expanded) {
+      // Stays put until Esc or the command, like the command-opened panel
+      this.pinned = true;
+      this.cancelClose();
+      // Going into a section opens it even if its arrow was clicked shut
+      for (let i = index; i !== undefined && i >= 0; i = this.parentOf.get(i)) this.manualClosed.delete(i);
+      // The section refolds once the scroll lands; keep the clicked row
+      // under the pointer through that
+      this.anchorRow(index, 1500);
+      this.scrollTo(index);
+      return;
+    }
+    // Collapse first — it can hand focus back to the editor, and that
+    // focus change scrolls the caret into view, which would fight the
+    // scroll we are about to start.
+    this.collapse();
+    this.scrollTo(index);
+  }
+
+  /* ---------------- Branch folding ---------------- */
+
+  /** The top-level heading a row sits under (itself if it is one). */
+  topOf(index) {
+    let i = index;
+    while (this.parentOf.has(i) && this.parentOf.get(i) >= 0) i = this.parentOf.get(i);
+    return i;
+  }
+
+  /** Whether a row's children show. Arrows the user clicked win; then, with
+      "expand only the current section", the section on screen opens all
+      the way and the rest only down to the configured depth. */
+  isOpen(index) {
+    if (this.manualClosed.has(index)) return false;
+    if (this.manualOpen.has(index)) return true;
+    if (!this.plugin.settings.panelFocusBranch) return true;
+    const active = this.rowIndexFor(this.activeIndex, true);
+    if (active >= 0 && this.topOf(active) === this.topOf(index)) return true;
+    const depth = Number(this.rows.get(index)?.dataset.level || 0);
+    return depth < this.plugin.settings.panelOtherDepth - 1;
+  }
+
+  isVisible(index) {
+    for (let p = this.parentOf.get(index); p !== undefined && p >= 0; p = this.parentOf.get(p)) {
+      if (!this.isOpen(p)) return false;
+    }
+    return true;
+  }
+
+  /** Remember where a row is on screen so the next refold can put it back
+      there: the panel is centered on the rail, so rows appearing or going
+      away would otherwise slide everything under the pointer. */
+  anchorRow(index, ms) {
+    const row = this.rows.get(index);
+    if (!row || !this.expanded) return;
+    this.anchor = { index, top: row.getBoundingClientRect().top, until: Date.now() + ms };
+  }
+
+  /** Shift the panel so the anchored row is back where it was, without
+      letting the panel leave the pane. */
+  restoreAnchor() {
+    const a = this.anchor;
+    if (!a || Date.now() > a.until || !this.expanded) return;
+    const row = this.rows.get(a.index);
+    if (!row || row.hasClass('is-folded-away')) return;
+    const delta = a.top - row.getBoundingClientRect().top;
+    if (Math.abs(delta) < 0.5) return;
+    const host = this.view.contentEl.getBoundingClientRect();
+    const box = this.panelEl.getBoundingClientRect();
+    const room = { up: box.top - host.top - 8, down: host.bottom - 8 - box.bottom };
+    const move = Math.max(-room.up, Math.min(room.down, delta));
+    this.panelShift = (this.panelShift || 0) + move;
+    // Jump there at once: a gliding panel would still be moving when the
+    // second click of a double click lands
+    this.panelEl.addClass('is-anchored');
+    this.panelEl.style.setProperty('--gg-panel-shift', this.panelShift + 'px');
+  }
+
+  applyFolding() {
+    const folding = !!this.plugin.settings.panelFocusBranch;
+    for (const [i, row] of this.rows) {
+      row.toggleClass('is-folded-away', folding && !this.isVisible(i));
+      const open = this.isOpen(i);
+      row.toggleClass('is-open', open);
+      const arrow = row.firstElementChild;
+      if (folding && row.hasClass('has-children')) arrow.setAttr('aria-label', t(open ? 'collapseRow' : 'expandRow'));
+      else arrow.removeAttribute('aria-label');
+    }
+    this.restoreAnchor();
+  }
+
+  toggleRow(index) {
+    this.anchorRow(index, 400);
+    const open = this.isOpen(index);
+    this.manualOpen.delete(index);
+    this.manualClosed.delete(index);
+    // Only record it when it differs from what folding would do anyway
+    if (open) this.manualClosed.add(index);
+    else this.manualOpen.add(index);
+    if (this.isOpen(index) === open) {
+      this.manualOpen.delete(index);
+      this.manualClosed.delete(index);
+    }
+    this.applyFolding();
+  }
+
+  openBranch(index) {
+    this.anchorRow(index, 400);
+    for (const [i] of this.rows) {
+      if (i !== index && !this.isDescendant(i, index)) continue;
+      this.manualClosed.delete(i);
+      this.manualOpen.add(i);
+    }
+    this.applyFolding();
+  }
+
+  isDescendant(index, ancestor) {
+    for (let p = this.parentOf.get(index); p !== undefined && p >= 0; p = this.parentOf.get(p)) {
+      if (p === ancestor) return true;
+    }
+    return false;
   }
 
   expand(pinned) {
@@ -325,6 +535,10 @@ class Rail {
     this.panelEl.style.maxHeight = Math.round(host.height * 0.8) + 'px';
 
     this.hidePreview();
+    this.panelShift = 0;
+    this.anchor = null;
+    this.panelEl.removeClass('is-anchored');
+    this.panelEl.style.removeProperty('--gg-panel-shift');
     this.el.addClass('gg-outline-is-expanded');
     // Resting on a dash is what opened this, so that dash is what the
     // user is looking at — it takes the highlight. The command path has
@@ -402,9 +616,13 @@ class Rail {
 
   /** The panel row standing in for a heading: itself, or the nearest
       shallower heading above it when the depth cap left it out. */
-  rowIndexFor(index) {
-    for (let i = index; i >= 0; i--) if (this.rows.has(i)) return i;
-    return -1;
+  rowIndexFor(index, ignoreFolding) {
+    let i = index;
+    while (i >= 0 && !this.rows.has(i)) i--;
+    if (ignoreFolding) return i;
+    // Folded away: the nearest ancestor that is showing stands in for it
+    while (i >= 0 && this.rows.get(i).hasClass('is-folded-away')) i = this.parentOf.get(i);
+    return i;
   }
 
   setFocusRow(index, scrollIntoView) {
@@ -430,7 +648,7 @@ class Rail {
   }
 
   moveFocus(step) {
-    const keys = Array.from(this.rows.keys());
+    const keys = Array.from(this.rows.keys()).filter((i) => !this.rows.get(i).hasClass('is-folded-away'));
     if (!keys.length) return;
     const at = keys.indexOf(this.focusIndex);
     const next =
@@ -458,9 +676,12 @@ class Rail {
       this.moveFocus(e.key === 'ArrowDown' ? 1 : -1);
     } else if (e.key === 'Enter' && this.focusIndex >= 0) {
       e.preventDefault();
-      const target = this.focusIndex;
-      this.collapse();
-      this.scrollTo(target);
+      this.jumpTo(this.focusIndex);
+    } else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && this.plugin.settings.panelFocusBranch) {
+      const row = this.rows.get(this.focusIndex);
+      if (!row || !row.hasClass('has-children')) return;
+      e.preventDefault();
+      if ((e.key === 'ArrowRight') !== this.isOpen(this.focusIndex)) this.toggleRow(this.focusIndex);
     }
   }
 
@@ -707,6 +928,12 @@ class Rail {
     }
     const row = this.rows.get(index);
     if (row) row.addClass('is-active');
+    if (this.plugin.settings.panelFocusBranch) this.applyFolding();
+    // Keep the section being read in view while the panel stays open
+    if (this.expanded) {
+      const shown = this.rows.get(this.rowIndexFor(index));
+      if (shown) this.revealRow(shown);
+    }
   }
 
   /* ---------------- Preview ---------------- */
@@ -731,10 +958,8 @@ class Rail {
   showPreview(index, anchor) {
     const body = this.sectionPreview(index);
     this.previewEl.empty();
-    this.previewEl.createDiv({
-      cls: 'gg-outline-preview-title',
-      text: this.headings[index].heading,
-    });
+    const title = this.previewEl.createDiv({ cls: 'gg-outline-preview-title' });
+    if (fillHeading(title, this.headings[index].heading) && typeof finishRenderMath === 'function') finishRenderMath();
     this.previewEl.createDiv({
       cls: 'gg-outline-preview-body',
       text: body || t('previewEmpty'),
@@ -768,6 +993,12 @@ module.exports = class GogogaOutline extends Plugin {
     resolveLocale();
     this.settings = Object.assign({}, DEFAULTS, await this.loadData());
     this.rails = new Map();
+    // Headings with $formulas$ render them; MathJax loads once for the app
+    if (typeof loadMathJax === 'function') {
+      loadMathJax().then(() => {
+        for (const rail of this.rails.values()) rail.refresh();
+      }, () => {});
+    }
 
     this.addSettingTab(new GogogaOutlineSettings(this.app, this));
 
@@ -989,6 +1220,53 @@ class GogogaOutlineSettings extends PluginSettingTab {
             this.plugin.settings.panelMaxLevel = v;
             await this.plugin.saveSettings();
           })
+      );
+
+    new Setting(containerEl)
+      .setName(t('stayOpenName'))
+      .setDesc(t('stayOpenDesc'))
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.panelStayOpen).onChange(async (v) => {
+          this.plugin.settings.panelStayOpen = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t('focusBranchName'))
+      .setDesc(t('focusBranchDesc'))
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.panelFocusBranch).onChange(async (v) => {
+          this.plugin.settings.panelFocusBranch = v;
+          await this.plugin.saveSettings();
+          this.display();
+        })
+      );
+
+    if (this.plugin.settings.panelFocusBranch) {
+      new Setting(containerEl)
+        .setName(t('otherDepthName'))
+        .setDesc(t('otherDepthDesc'))
+        .addSlider((s) =>
+          s
+            .setLimits(1, 3, 1)
+            .setDynamicTooltip()
+            .setValue(this.plugin.settings.panelOtherDepth)
+            .onChange(async (v) => {
+              this.plugin.settings.panelOtherDepth = v;
+              await this.plugin.saveSettings();
+            })
+        );
+    }
+
+    new Setting(containerEl)
+      .setName(t('wrapName'))
+      .setDesc(t('wrapDesc'))
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.panelWrap).onChange(async (v) => {
+          this.plugin.settings.panelWrap = v;
+          await this.plugin.saveSettings();
+        })
       );
 
     containerEl.createEl('h3', { text: t('writingHeading') });

@@ -189,9 +189,14 @@
 .gg-outline-is-expanded .gg-outline-panel {
   opacity: 1;
   visibility: visible;
-  transform: translateY(-50%) translateX(0);
+  /* --gg-panel-shift keeps a clicked row in place while branches fold */
+  transform: translateY(calc(-50% + var(--gg-panel-shift, 0px))) translateX(0);
   pointer-events: auto;
 }
+
+/* Shifted to keep a clicked row in place: no slide, or it drifts under
+   the pointer between the two clicks of a double click */
+.gg-outline-panel.is-anchored { transition: opacity 180ms ease, visibility 180ms; }
 
 .gg-outline-panel-list {
   display: flex;
@@ -265,3 +270,52 @@
     transform: none;
   }
 }
+
+/* ---------------- Branch folding, formulas, full titles ---------------- */
+
+/* Rows hold an arrow slot and the title. The arrow only shows with
+   "Expand only the current section" on; without it the slot collapses
+   to nothing, so the panel looks exactly as before. */
+.gg-outline .gg-outline-panel .gg-outline-row {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.gg-outline-row-text {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.gg-outline-arrow {
+  display: none;
+  flex: none;
+  width: 12px;
+  margin-inline-start: -4px;
+  text-align: center;
+  color: var(--text-faint);
+  font-size: 9px;
+  border-radius: 3px;
+}
+.gg-outline-folding .gg-outline-arrow { display: inline-block; }
+.gg-outline-folding .gg-outline-row.has-children .gg-outline-arrow::before {
+  content: "▸";
+  display: inline-block;
+  transition: transform 120ms ease;
+}
+.gg-outline-folding .gg-outline-row.has-children.is-open .gg-outline-arrow::before { transform: rotate(90deg); }
+.gg-outline-folding .gg-outline-row.has-children .gg-outline-arrow:hover {
+  color: var(--text-normal);
+  background-color: var(--background-modifier-hover);
+}
+.gg-outline .gg-outline-panel .gg-outline-row.is-folded-away { display: none; }
+
+/* "Show full titles": long headings wrap instead of trailing off */
+.gg-outline-wrap .gg-outline-panel .gg-outline-row-text {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+.gg-outline.gg-outline-wrap .gg-outline-panel .gg-outline-row { white-space: normal; }
+
+.gg-outline-row-text mjx-container,
+.gg-outline-preview-title mjx-container { font-size: 0.95em; }
