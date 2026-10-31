@@ -70,8 +70,9 @@ A few more panel options, all off by default:
 - `Expand only the current heading`: the heading you are reading (or just
   clicked) is expanded all the way and the headings above it are opened;
   everything else folds down to `Levels shown for other headings` (top
-  headings only by default), so it works for a note with a single top
-  heading too. Arrows appear in
+  headings only by default). In a note under one single top heading, that
+  heading counts as the title and levels count from the headings below
+  it. Arrows appear in
   front of headings: click to expand or collapse one level, double-click to
   expand the whole branch; ←/→ work too when the panel has focus.
 - `Show full titles`: long headings wrap instead of being cut off.

@@ -41,7 +41,7 @@ const STRINGS = {
     focusBranchName: 'Expand only the current heading',
     focusBranchDesc: 'The heading you are reading (or just clicked) is expanded all the way, with the headings above it opened; everything else folds down to the level set below. Arrows in front of headings expand one level on click, everything on double-click.',
     otherDepthName: 'Levels shown for other headings',
-    otherDepthDesc: 'With "Expand only the current heading" on, how many levels the rest of the outline shows.',
+    otherDepthDesc: 'With "Expand only the current heading" on, how many levels the rest of the outline shows. In a note under one single top heading, levels count from the headings below it.',
     wrapName: 'Show full titles',
     wrapDesc: 'Long headings wrap onto more lines instead of being cut off.',
     expandRow: 'Expand (double-click: expand all)',
@@ -85,7 +85,7 @@ const STRINGS = {
     focusBranchName: '只展开当前标题',
     focusBranchDesc: '正在看的（或刚点的）标题全部展开，它的上级一路打开，其余标题折叠到下面设的层级；标题前的小箭头单击展开一层、双击全部展开',
     otherDepthName: '其他标题显示到第几级',
-    otherDepthDesc: '打开「只展开当前标题」后，其余部分显示几级标题',
+    otherDepthDesc: '打开「只展开当前标题」后，其余部分显示几级标题；整篇只有一个一级标题时，从它下面一级算起',
     wrapName: '显示完整标题',
     wrapDesc: '太长的标题换行显示全文，不再省略成一行',
     expandRow: '展开（双击全部展开）',
@@ -390,6 +390,11 @@ class Rail {
     for (const [i, p] of this.parentOf) {
       if (p >= 0) this.rows.get(p).addClass('has-children');
     }
+    // A note under one single top heading treats it as the title: folding
+    // levels count from the headings below it, or every level setting
+    // would look the same (that heading is always open as everyone's parent)
+    const tops = [...this.parentOf].filter(([, p]) => p < 0).map(([i]) => i);
+    this.foldBase = tops.length === 1 && this.rows.get(tops[0]).hasClass('has-children') ? 1 : 0;
     if (math && typeof finishRenderMath === 'function') finishRenderMath();
     this.applyFolding();
   }
@@ -428,7 +433,7 @@ class Rail {
     if (!this.plugin.settings.panelFocusBranch) return true;
     const active = this.rowIndexFor(this.activeIndex, true);
     if (active >= 0 && (index === active || this.isDescendant(index, active) || this.isDescendant(active, index))) return true;
-    const depth = Number(this.rows.get(index)?.dataset.level || 0);
+    const depth = Number(this.rows.get(index)?.dataset.level || 0) - (this.foldBase || 0);
     return depth < this.plugin.settings.panelOtherDepth - 1;
   }
 

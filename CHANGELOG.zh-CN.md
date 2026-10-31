@@ -2,6 +2,11 @@
 
 gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。English: [CHANGELOG.md](CHANGELOG.md).
 
+## [0.4.2] - 2026-10-31
+
+### 修复
+- 整篇只有一个一级标题时，「其他标题显示到第几级」设成 1 和 2 看起来一样（这个一级标题是所有标题的上级，总是打开）。现在它当作总标题，层级从它下面一级算起：设成 1 只显示二级标题，设成 2 显示到三级。
+
 ## [0.4.1] - 2026-10-31
 
 ### 变更
@@ -46,6 +51,7 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
+[0.4.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.2.1...0.3.0

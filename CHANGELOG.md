@@ -2,6 +2,11 @@
 
 All notable changes to gogoga outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
 
+## [0.4.2] - 2026-10-31
+
+### Fixed
+- In a note under one single top heading, setting "Levels shown for other headings" to 1 or 2 looked the same, since that heading is everyone's parent and always open. It now counts as the title and levels count from the headings below it: 1 shows only the second-level headings, 2 shows down to the third level.
+
 ## [0.4.1] - 2026-10-31
 
 ### Changed
@@ -46,6 +51,7 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
+[0.4.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.2.1...0.3.0
