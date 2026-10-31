@@ -38,10 +38,10 @@ const STRINGS = {
     panelMaxLevelDesc: 'Headings deeper than this are left out of the panel but keep their dash on the rail.',
     stayOpenName: 'Keep the outline open after clicking',
     stayOpenDesc: 'Clicking a heading scrolls to it and leaves the outline open. Close it with Esc or the command.',
-    focusBranchName: 'Expand only the current section',
-    focusBranchDesc: 'The section you are reading (or just clicked) is expanded all the way; other sections show only their top headings. Arrows in front of headings expand one level on click, everything on double-click.',
-    otherDepthName: 'Levels shown for other sections',
-    otherDepthDesc: 'With "Expand only the current section" on, how many levels the other sections show.',
+    focusBranchName: 'Expand only the current heading',
+    focusBranchDesc: 'The heading you are reading (or just clicked) is expanded all the way, with the headings above it opened; everything else folds down to the level set below. Arrows in front of headings expand one level on click, everything on double-click.',
+    otherDepthName: 'Levels shown for other headings',
+    otherDepthDesc: 'With "Expand only the current heading" on, how many levels the rest of the outline shows.',
     wrapName: 'Show full titles',
     wrapDesc: 'Long headings wrap onto more lines instead of being cut off.',
     expandRow: 'Expand (double-click: expand all)',
@@ -82,10 +82,10 @@ const STRINGS = {
     panelMaxLevelDesc: '比这更深的标题不进入面板，但导轨上仍然有它的刻度',
     stayOpenName: '点击标题后保持大纲打开',
     stayOpenDesc: '点一个标题跳过去，大纲不收起，按 Esc 或再用一次命令关掉',
-    focusBranchName: '只展开当前章节',
-    focusBranchDesc: '正在看的（或刚点的）那一章全部展开，其他章节只显示大标题；标题前的小箭头单击展开一层、双击全部展开',
-    otherDepthName: '其他章节显示到第几级',
-    otherDepthDesc: '打开「只展开当前章节」后，其他章节显示几级标题',
+    focusBranchName: '只展开当前标题',
+    focusBranchDesc: '正在看的（或刚点的）标题全部展开，它的上级一路打开，其余标题折叠到下面设的层级；标题前的小箭头单击展开一层、双击全部展开',
+    otherDepthName: '其他标题显示到第几级',
+    otherDepthDesc: '打开「只展开当前标题」后，其余部分显示几级标题',
     wrapName: '显示完整标题',
     wrapDesc: '太长的标题换行显示全文，不再省略成一行',
     expandRow: '展开（双击全部展开）',
@@ -417,22 +417,17 @@ class Rail {
 
   /* ---------------- Branch folding ---------------- */
 
-  /** The top-level heading a row sits under (itself if it is one). */
-  topOf(index) {
-    let i = index;
-    while (this.parentOf.has(i) && this.parentOf.get(i) >= 0) i = this.parentOf.get(i);
-    return i;
-  }
-
   /** Whether a row's children show. Arrows the user clicked win; then, with
-      "expand only the current section", the section on screen opens all
-      the way and the rest only down to the configured depth. */
+      "expand only the current heading", the heading on screen opens all the
+      way along with the headings above it, and everything else folds down
+      to the configured depth — so a note with a single top heading still
+      folds. */
   isOpen(index) {
     if (this.manualClosed.has(index)) return false;
     if (this.manualOpen.has(index)) return true;
     if (!this.plugin.settings.panelFocusBranch) return true;
     const active = this.rowIndexFor(this.activeIndex, true);
-    if (active >= 0 && this.topOf(active) === this.topOf(index)) return true;
+    if (active >= 0 && (index === active || this.isDescendant(index, active) || this.isDescendant(active, index))) return true;
     const depth = Number(this.rows.get(index)?.dataset.level || 0);
     return depth < this.plugin.settings.panelOtherDepth - 1;
   }

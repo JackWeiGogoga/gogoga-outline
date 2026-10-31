@@ -2,6 +2,11 @@
 
 All notable changes to gogoga outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
 
+## [0.4.1] - 2026-10-31
+
+### Changed
+- "Expand only the current section" is now "Expand only the current heading": sections used to be split by top-level heading, so a note with a single top heading was always fully expanded. Now only the heading you're reading and the headings above it open, and the rest fold down to "Levels shown for other headings".
+
 ## [0.4.0] - 2026-10-31
 
 ### Added
@@ -41,6 +46,7 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
+[0.4.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.0...0.4.1
 [0.4.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.2.0...0.2.1

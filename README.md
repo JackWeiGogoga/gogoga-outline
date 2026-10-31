@@ -67,9 +67,11 @@ A few more panel options, all off by default:
 - `Keep the outline open after clicking`: clicking a heading scrolls to it and
   leaves the panel open; close it with Esc or the command. While it stays
   open, the section you scroll to is kept in view in the panel.
-- `Expand only the current section`: the section you are reading (or just
-  clicked) is expanded all the way, other sections show only their top
-  headings (or down to `Levels shown for other sections`). Arrows appear in
+- `Expand only the current heading`: the heading you are reading (or just
+  clicked) is expanded all the way and the headings above it are opened;
+  everything else folds down to `Levels shown for other headings` (top
+  headings only by default), so it works for a note with a single top
+  heading too. Arrows appear in
   front of headings: click to expand or collapse one level, double-click to
   expand the whole branch; ←/→ work too when the panel has focus.
 - `Show full titles`: long headings wrap instead of being cut off.
