@@ -2,6 +2,14 @@
 
 All notable changes to gogoga outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
 
+## [0.4.0] - 2026-10-31
+
+### Added
+- "Keep the outline open after clicking" setting: clicking a heading scrolls to it and leaves the outline open; close it with Esc or the command. While it's open, the section you're reading stays in view as you scroll.
+- "Expand only the current section" setting: the section you're reading (or just clicked) is expanded all the way, and other sections show only their top headings ("Levels shown for other sections" sets how many). Arrows in front of headings expand or collapse one level on click and the whole branch on double-click; ←/→ do the same when the outline has keyboard focus. The row you click stays where it is when the list around it opens or closes.
+- "Show full titles" setting: long headings wrap onto more lines instead of being cut off.
+- Formulas in headings render as formulas in the outline and in section previews.
+
 ## [0.3.0] - 2026-10-21
 
 ### Added
@@ -33,6 +41,7 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
+[0.4.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.2.1...0.3.0
 [0.2.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.2.0...0.2.1
 [0.2.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.1.1...0.2.0

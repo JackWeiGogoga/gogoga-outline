@@ -1,7 +1,7 @@
 {
   "id": "gogoga-outline",
   "name": "gogoga outline",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "minAppVersion": "1.8.7",
   "description": "A collapsed heading rail on the edge of the editor: ticks by heading level, expands on hover with titles and section previews, smooth scroll to any heading.",
   "author": "jackwei",
