@@ -10,6 +10,23 @@ The interface follows Obsidian's language setting — English, or Simplified Chi
 
 ![Demo: hover wave with section previews, click to jump, rest to open the full outline, keyboard navigation](https://raw.githubusercontent.com/JackWeiGogoga/gogoga-outline/main/docs/demo.gif)
 
+## Install
+
+### Community plugins (recommended)
+
+Settings → Community plugins → turn off **Restricted mode** → **Browse**, search for **gogoga outline**, install it, then click **Enable**. Updates show up there too.
+
+### Manual install
+
+For offline machines (such as a company network) or to pin a specific version:
+
+1. Open the [Releases page](https://github.com/JackWeiGogoga/gogoga-outline/releases/latest) and download the three files `main.js`, `manifest.json`, `styles.css` under **Assets**. **Don't download the Source code archives**: they are the source code, which Obsidian can't load.
+2. In your vault's folder, go to `.obsidian/plugins/`, create a folder named `gogoga-outline`, and put the files in it, so you end up with paths like `<vault>/.obsidian/plugins/gogoga-outline/main.js`.
+   - `.obsidian` is a hidden folder: press `⌘ ⇧ .` in Finder on macOS; on Windows, tick **Hidden items** under **View** in File Explorer.
+3. Restart Obsidian (or click the refresh button under Settings → Community plugins), then enable **gogoga outline** in the list of installed plugins.
+
+On phones, where moving files around is awkward, use the community plugins browser.
+
 ## What it does
 
 - **At rest**: a column of identical short dashes, one per heading. The dash
