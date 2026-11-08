@@ -81,6 +81,10 @@ the depth cap are left out of the panel but keep their dash on the rail.
 
 A few more panel options, all off by default:
 
+- `Keep the full outline open`: the full outline stays open at the edge of the
+  note instead of the rail, like a docked outline panel, and the note makes
+  room for it. Clicking a heading scrolls to it; Esc doesn't close it; the
+  outline command moves keyboard focus into it. Not on phones.
 - `Keep the outline open after clicking`: clicking a heading scrolls to it and
   leaves the panel open; close it with Esc or the command. While it stays
   open, the section you scroll to is kept in view in the panel.

@@ -2,6 +2,11 @@
 
 gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。English: [CHANGELOG.md](CHANGELOG.md).
 
+## [Unreleased]
+
+### 新增
+- 设置里新增「完整大纲常驻展开」（默认关）：完整大纲一直显示在笔记边上，代替导轨，像固定的大纲面板，正文给它让出位置；点标题跳转、按 Esc 都不会收起。手机上不生效。（#1）
+
 ## [0.4.2] - 2026-10-31
 
 ### 修复

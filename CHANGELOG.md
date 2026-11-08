@@ -2,6 +2,11 @@
 
 All notable changes to gogoga outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
 
+## [Unreleased]
+
+### Added
+- **Keep the full outline open** setting (off by default): the full outline stays open at the edge of the note instead of the rail, like a docked outline panel, and the note makes room for it. Clicking a heading scrolls to it and Esc doesn't close it. Not on phones. (#1)
+
 ## [0.4.2] - 2026-10-31
 
 ### Fixed

@@ -11,7 +11,7 @@
  * a 50-heading document behaves the same as a 5-heading one.
  * Companion to the gogoga theme. */
 
-const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, getLanguage, loadMathJax, renderMath, finishRenderMath } = require('obsidian');
+const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, Platform, getLanguage, loadMathJax, renderMath, finishRenderMath } = require('obsidian');
 
 /* UI strings. Keep the en and zh key sets identical. */
 const STRINGS = {
@@ -36,6 +36,8 @@ const STRINGS = {
     panelWidthName: 'Panel width',
     panelMaxLevelName: 'Panel depth',
     panelMaxLevelDesc: 'Headings deeper than this are left out of the panel but keep their dash on the rail.',
+    dockedName: 'Keep the full outline open',
+    dockedDesc: 'Show the full outline at the edge of the note all the time instead of the rail, like a docked outline panel. The note makes room for it. Not on phones.',
     stayOpenName: 'Keep the outline open after clicking',
     stayOpenDesc: 'Clicking a heading scrolls to it and leaves the outline open. Close it with Esc or the command.',
     focusBranchName: 'Expand only the current heading',
@@ -80,6 +82,8 @@ const STRINGS = {
     panelWidthName: '面板宽度',
     panelMaxLevelName: '面板展开层级',
     panelMaxLevelDesc: '比这更深的标题不进入面板，但导轨上仍然有它的刻度',
+    dockedName: '完整大纲常驻展开',
+    dockedDesc: '不用悬停，完整大纲一直显示在笔记边上（代替导轨），正文给它让出位置。手机上不生效。',
     stayOpenName: '点击标题后保持大纲打开',
     stayOpenDesc: '点一个标题跳过去，大纲不收起，按 Esc 或再用一次命令关掉',
     focusBranchName: '只展开当前标题',
@@ -148,6 +152,7 @@ const DEFAULTS = {
   panelWidth: 240,
   panelMaxLevel: 6,
   panelStayOpen: false,
+  panelDocked: false,
   panelFocusBranch: false,
   panelOtherDepth: 1,
   panelWrap: false,
@@ -262,7 +267,29 @@ class Rail {
     this.refresh();
   }
 
+  /** 「完整大纲常驻展开」（#1）：面板一直开着、贴在笔记边上，正文让出位置；手机上屏幕太窄，不生效 */
+  docked() {
+    return !!this.plugin.settings.panelDocked && !Platform.isPhone;
+  }
+
+  /** 常驻时把面板打开（标题够数才开），正文按面板宽度让位 */
+  dock() {
+    const show = this.docked() && this.headings.length >= this.plugin.settings.minHeadings;
+    const host = this.view.contentEl;
+    host.toggleClass('gg-outline-docked-host', show);
+    host.dataset.ggOutlineSide = this.plugin.settings.side;
+    host.style.setProperty('--gg-panel-width', this.plugin.settings.panelWidth + 'px');
+    if (!show) return;
+    if (!this.expanded) this.expand(false);
+    this.pinned = true;
+    const shown = this.rows.get(this.rowIndexFor(this.activeIndex));
+    if (shown) this.revealRow(shown);
+  }
+
   apply() {
+    const wasDocked = this.el.hasClass('gg-outline-docked');
+    this.el.toggleClass('gg-outline-docked', this.docked());
+    if (wasDocked && !this.docked()) this.collapse();
     this.el.dataset.side = this.plugin.settings.side;
     this.el.toggleClass('gg-outline-wrap', !!this.plugin.settings.panelWrap);
     this.el.toggleClass('gg-outline-folding', !!this.plugin.settings.panelFocusBranch);
@@ -301,6 +328,7 @@ class Rail {
     if (this.headings.length < this.plugin.settings.minHeadings) {
       this.el.addClass('gg-outline-empty');
       this.collapse();
+      this.dock();
       return;
     }
     this.el.removeClass('gg-outline-empty');
@@ -329,6 +357,7 @@ class Rail {
     this.buildPanel();
     this.attachScroll();
     this.syncActive();
+    this.dock();
   }
 
   /* ---------------- The expanded panel ---------------- */
@@ -401,6 +430,12 @@ class Rail {
 
   /** Clicking a heading on the rail or in the panel. */
   jumpTo(index) {
+    if (this.docked() && this.expanded) {
+      for (let i = index; i !== undefined && i >= 0; i = this.parentOf.get(i)) this.manualClosed.delete(i);
+      this.anchorRow(index, 1500);
+      this.scrollTo(index);
+      return;
+    }
     if (this.plugin.settings.panelStayOpen && this.expanded) {
       // Stays put until Esc or the command, like the command-opened panel
       this.pinned = true;
@@ -532,7 +567,9 @@ class Rail {
     // The panel is centered on the rail, which is centered on the pane,
     // so capping it at 80% of the pane keeps both ends on screen.
     const host = this.view.contentEl.getBoundingClientRect();
-    this.panelEl.style.maxHeight = Math.round(host.height * 0.8) + 'px';
+    // 常驻时面板占满笔记的高度（样式里定），不按 80% 限高
+    if (this.docked()) this.panelEl.style.removeProperty('max-height');
+    else this.panelEl.style.maxHeight = Math.round(host.height * 0.8) + 'px';
 
     this.hidePreview();
     this.panelShift = 0;
@@ -543,6 +580,8 @@ class Rail {
     // Resting on a dash is what opened this, so that dash is what the
     // user is looking at — it takes the highlight. The command path has
     // no crest, so it falls back to the section currently on screen.
+    // 常驻时不抢键盘高亮，也不拦 Esc（它一直开着，Esc 留给编辑器）
+    if (this.docked()) return;
     const start = this.hoverIndex >= 0 ? this.hoverIndex : this.activeIndex;
     this.setFocusRow(this.rowIndexFor(start), true);
     document.addEventListener('keydown', this.onDocKey, true);
@@ -553,6 +592,8 @@ class Rail {
     this.cancelDwell();
     this.cancelClose();
     if (!this.expanded) return;
+    // 常驻展开：标题够数时不收（命令、Esc、点标题、移开鼠标都不收）
+    if (this.docked() && this.headings.length >= this.plugin.settings.minHeadings) return;
     this.expanded = false;
     this.pinned = false;
     this.el.removeClass('gg-outline-is-expanded');
@@ -567,6 +608,12 @@ class Rail {
   }
 
   togglePinned() {
+    // 常驻时命令改成把键盘焦点放进大纲，用方向键挑标题
+    if (this.docked() && this.expanded) {
+      this.setFocusRow(this.rowIndexFor(this.activeIndex), true);
+      this.panelEl.focus();
+      return;
+    }
     if (this.expanded && this.pinned) this.collapse();
     else this.expand(true);
   }
@@ -984,6 +1031,7 @@ class Rail {
     this.cancelClose();
     document.removeEventListener('keydown', this.onDocKey, true);
     this.detachScroll();
+    this.view.contentEl.removeClass('gg-outline-docked-host');
     this.el.remove();
   }
 }
@@ -1220,6 +1268,16 @@ class GogogaOutlineSettings extends PluginSettingTab {
             this.plugin.settings.panelMaxLevel = v;
             await this.plugin.saveSettings();
           })
+      );
+
+    new Setting(containerEl)
+      .setName(t('dockedName'))
+      .setDesc(t('dockedDesc'))
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.panelDocked).onChange(async (v) => {
+          this.plugin.settings.panelDocked = v;
+          await this.plugin.saveSettings();
+        })
       );
 
     new Setting(containerEl)

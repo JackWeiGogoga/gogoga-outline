@@ -319,3 +319,44 @@
 
 .gg-outline-row-text mjx-container,
 .gg-outline-preview-title mjx-container { font-size: 0.95em; }
+
+/* ---------------- 完整大纲常驻展开（设置里打开） ----------------
+   面板一直开着，贴在笔记边上占满高度，代替导轨；正文让出面板的宽度 */
+.gg-outline.gg-outline-docked {
+  /* 有的主题（gogoga）标题栏浮在正文上面：让开它 */
+  top: calc(var(--header-height, 40px) + 8px);
+  bottom: 12px;
+  transform: none;
+  max-height: none;
+  width: var(--gg-panel-width, 240px);
+}
+.gg-outline.gg-outline-docked[data-side="right"] { right: 8px; }
+.gg-outline.gg-outline-docked[data-side="left"] { left: 8px; }
+.gg-outline-docked .gg-outline-list,
+.gg-outline-docked .gg-outline-preview { display: none; }
+.gg-outline.gg-outline-docked .gg-outline-panel {
+  top: 0;
+  left: 0;
+  right: 0;
+  max-height: 100%;
+  border-color: transparent;
+  border-inline-start-color: var(--background-modifier-border);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  transform: none;
+  transition: none;
+}
+.gg-outline-docked .gg-outline-panel .gg-outline-row { transition-delay: 0ms; }
+.gg-outline.gg-outline-docked[data-side="left"] .gg-outline-panel {
+  border-inline-start-color: transparent;
+  border-inline-end-color: var(--background-modifier-border);
+}
+.gg-outline-docked-host[data-gg-outline-side="right"] .markdown-source-view.mod-cm6 .cm-scroller,
+.gg-outline-docked-host[data-gg-outline-side="right"] .markdown-preview-view {
+  padding-right: calc(var(--gg-panel-width, 240px) + 24px);
+}
+.gg-outline-docked-host[data-gg-outline-side="left"] .markdown-source-view.mod-cm6 .cm-scroller,
+.gg-outline-docked-host[data-gg-outline-side="left"] .markdown-preview-view {
+  padding-left: calc(var(--gg-panel-width, 240px) + 24px);
+}
