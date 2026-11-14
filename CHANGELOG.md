@@ -4,6 +4,11 @@ All notable changes to gogoga outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-14
+
+### Added
+- Setting "Show headings in their heading style" (off by default, #2): each row of the full outline takes the color, weight and font your theme sets for that heading level, and grows slightly with the level, so levels are easy to tell apart; the row you're reading keeps the accent color.
+
 ## [0.5.1] - 2026-11-14
 
 ### Fixed
@@ -63,7 +68,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.1...0.4.2

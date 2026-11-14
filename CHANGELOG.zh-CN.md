@@ -4,6 +4,11 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-14
+
+### 新增
+- 设置「按标题样式显示」（默认关，#2）：完整大纲里每行用主题给对应级别标题定的颜色、粗细和字体，字号也按级别略微放大，层级一眼能分清；正在看的那行仍是强调色。
+
 ## [0.5.1] - 2026-11-14
 
 ### 修复
@@ -63,7 +68,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...HEAD
+[0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.1...0.4.2

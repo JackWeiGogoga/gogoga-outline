@@ -46,6 +46,8 @@ const STRINGS = {
     otherDepthDesc: 'With "Expand only the current heading" on, how many levels the rest of the outline shows. In a note under one single top heading, levels count from the headings below it.',
     wrapName: 'Show full titles',
     wrapDesc: 'Long headings wrap onto more lines instead of being cut off.',
+    headingStyleName: 'Show headings in their heading style',
+    headingStyleDesc: 'Rows in the full outline take the color, weight and (slightly) the size of their heading level, as set by your theme, so levels are easier to tell apart.',
     expandRow: 'Expand (double-click: expand all)',
     collapseRow: 'Collapse',
     writingHeading: 'Writing (gogoga theme)',
@@ -92,6 +94,8 @@ const STRINGS = {
     otherDepthDesc: '打开「只展开当前标题」后，其余部分显示几级标题；整篇只有一个一级标题时，从它下面一级算起',
     wrapName: '显示完整标题',
     wrapDesc: '太长的标题换行显示全文，不再省略成一行',
+    headingStyleName: '按标题样式显示',
+    headingStyleDesc: '完整大纲里每行用对应标题级别的颜色、粗细，字号也略按级别变化（跟着主题），层级更好分辨',
     expandRow: '展开（双击全部展开）',
     collapseRow: '收起',
     writingHeading: '写作辅助（gogoga 主题）',
@@ -156,6 +160,7 @@ const DEFAULTS = {
   panelFocusBranch: false,
   panelOtherDepth: 1,
   panelWrap: false,
+  panelHeadingStyle: false,
   focusMode: false,
   hoverHighlight: false,
 };
@@ -310,6 +315,8 @@ class Rail {
     if (wasDocked && !this.docked()) this.collapse();
     this.el.dataset.side = this.plugin.settings.side;
     this.el.toggleClass('gg-outline-wrap', !!this.plugin.settings.panelWrap);
+    // #2：按标题样式显示（默认关）
+    this.el.toggleClass('gg-outline-hstyle', !!this.plugin.settings.panelHeadingStyle);
     this.el.toggleClass('gg-outline-folding', !!this.plugin.settings.panelFocusBranch);
     this.el.style.setProperty(
       '--gg-panel-width',
@@ -477,6 +484,7 @@ class Rail {
         attr: { type: 'button', 'data-depth': String(Math.min(depth, 3)) },
       });
       row.dataset.level = String(depth);
+      row.dataset.h = String(h.level);
       const arrow = row.createSpan({ cls: 'gg-outline-arrow' });
       const label = row.createSpan({ cls: 'gg-outline-row-text' });
       if (fillHeading(label, h.heading)) math = true;
@@ -1431,6 +1439,16 @@ class GogogaOutlineSettings extends PluginSettingTab {
       .addToggle((tg) =>
         tg.setValue(this.plugin.settings.panelWrap).onChange(async (v) => {
           this.plugin.settings.panelWrap = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t('headingStyleName'))
+      .setDesc(t('headingStyleDesc'))
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.panelHeadingStyle).onChange(async (v) => {
+          this.plugin.settings.panelHeadingStyle = v;
           await this.plugin.saveSettings();
         })
       );

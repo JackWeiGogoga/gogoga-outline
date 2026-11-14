@@ -322,6 +322,16 @@
 }
 .gg-outline.gg-outline-wrap .gg-outline-panel .gg-outline-row { white-space: normal; }
 
+/* 「按标题样式显示」（#2，默认关）：每行用主题给这一级标题定的颜色、粗细、字体，字号按级别放大一点（标题本身的 30%） */
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row[data-h="1"] .gg-outline-row-text { color: var(--h1-color, inherit); font-weight: var(--h1-weight, 600); font-family: var(--h1-font, inherit); font-size: calc(1em + (var(--h1-size, 1em) - 1em) * 0.3); }
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row[data-h="2"] .gg-outline-row-text { color: var(--h2-color, inherit); font-weight: var(--h2-weight, 600); font-family: var(--h2-font, inherit); font-size: calc(1em + (var(--h2-size, 1em) - 1em) * 0.3); }
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row[data-h="3"] .gg-outline-row-text { color: var(--h3-color, inherit); font-weight: var(--h3-weight, 600); font-family: var(--h3-font, inherit); font-size: calc(1em + (var(--h3-size, 1em) - 1em) * 0.3); }
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row[data-h="4"] .gg-outline-row-text { color: var(--h4-color, inherit); font-weight: var(--h4-weight, 600); font-family: var(--h4-font, inherit); font-size: calc(1em + (var(--h4-size, 1em) - 1em) * 0.3); }
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row[data-h="5"] .gg-outline-row-text { color: var(--h5-color, inherit); font-weight: var(--h5-weight, 600); font-family: var(--h5-font, inherit); font-size: calc(1em + (var(--h5-size, 1em) - 1em) * 0.3); }
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row[data-h="6"] .gg-outline-row-text { color: var(--h6-color, inherit); font-weight: var(--h6-weight, 600); font-family: var(--h6-font, inherit); font-size: calc(1em + (var(--h6-size, 1em) - 1em) * 0.3); }
+/* 正在看的那行还是强调色，好找到当前位置 */
+.gg-outline-hstyle .gg-outline-panel .gg-outline-row.is-active .gg-outline-row-text { color: var(--text-accent); }
+
 .gg-outline-row-text mjx-container,
 .gg-outline-preview-title mjx-container { font-size: 0.95em; }
 
