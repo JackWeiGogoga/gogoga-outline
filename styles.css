@@ -48,6 +48,7 @@
   align-items: center;
   box-sizing: border-box;
   height: 8px;
+  flex-shrink: 0;
   padding: 0;
   margin: 0;
   background: transparent;
@@ -57,6 +58,10 @@
 }
 
 .gg-outline[data-side="right"] .gg-outline-item { justify-content: flex-end; }
+
+/* 标题太多、放不下时（#2）JS 算好每条的高度，挤密排满导轨 */
+.gg-outline-list.is-dense { gap: 0; }
+.gg-outline .gg-outline-list.is-dense .gg-outline-item { height: var(--gg-rail-pitch, 8px); }
 
 /* Uniform 12px dashes at rest; JS overrides width/height inline
    while the wave is live. The transition is what makes the wave

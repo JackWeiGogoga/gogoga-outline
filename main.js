@@ -173,6 +173,8 @@ const MAX_EXTRA = 34; // extra width at the crest
 const BASE_H = 2;
 const MAX_EXTRA_H = 2;
 const SIGMA = 22;    // falloff radius in px
+const RAIL_PITCH = 12; // 每条短横在导轨上占的高度：8px 按钮 + 4px 间距
+const RAIL_GAP = 4;
 
 /* Expansion */
 const DWELL_TOL = 6;     // px of drift that still counts as holding still
@@ -257,6 +259,22 @@ class Rail {
     this.panelListEl = this.panelEl.createDiv({ cls: 'gg-outline-panel-list' });
 
     this.listEl.addEventListener('mousemove', (e) => this.queueWave(e));
+    // Buttons grab focus on mousedown; letting them would pull the
+    // caret out of the editor and make CodeMirror scroll it back into
+    // view, landing us somewhere other than the heading.
+    this.listEl.addEventListener('mousedown', (e) => e.preventDefault());
+    // 点导轨上任意位置都跳到离鼠标最近的那条（以前要正好点中 2px 高的短横，点在空隙里没反应）
+    this.listEl.addEventListener('click', (e) => {
+      e.preventDefault();
+      const k = this.nearestItem(e.clientY);
+      // With the panel open the dashes scrub it; a click commits.
+      if (k >= 0) this.jumpTo(this.railIdx[k]);
+    });
+    // 笔记窗格高度变了：导轨能放下的标题数跟着变
+    this.resizeObs = new ResizeObserver(() => {
+      if (this.headings.length >= this.plugin.settings.minHeadings) this.buildRail();
+    });
+    this.resizeObs.observe(view.contentEl);
     this.listEl.addEventListener('mouseenter', () => this.cancelClose());
     this.listEl.addEventListener('mouseleave', () => this.onLeave(true));
     this.panelEl.addEventListener('mouseenter', () => this.cancelClose());
@@ -318,6 +336,11 @@ class Rail {
 
     this.detachScroll();
     this.listEl.empty();
+    this.railIdx = [];
+    this.railPos = new Map();
+    this.boosted = new Set();
+    this.centers = null;
+    this.crest = -1;
     this.panelListEl.empty();
     this.rows.clear();
     this.hidePreview();
@@ -333,31 +356,100 @@ class Rail {
     }
     this.el.removeClass('gg-outline-empty');
 
+    this.railKey = '';
+    this.buildRail();
+    this.buildPanel();
+    this.attachScroll();
+    this.syncActive();
+    this.dock();
+  }
+
+  /* ---------------- The rail ---------------- */
+
+  /** 导轨上放哪些标题（#2）：全放下（每条 12px）就全放；放不下就只放高层级的标题，
+      被省掉的标题算在它上面那条短横里；最高一级都放不下时把短横挤密，保证整条导轨都在屏幕里 */
+  railPlan() {
+    const avail = Math.max(40, this.view.contentEl.clientHeight * 0.76 - 16);
+    const fit = Math.max(1, Math.floor((avail + RAIL_GAP) / RAIL_PITCH));
+    const n = this.headings.length;
+    if (n <= fit) return { cap: 6, pitch: 0 };
+    const levels = [...new Set(this.headings.map((h) => h.level))].sort((a, b) => a - b);
+    let cap = levels[0];
+    for (const l of levels) {
+      if (this.headings.filter((h) => h.level <= l).length <= fit) cap = l;
+      else break;
+    }
+    const count = this.headings.filter((h) => h.level <= cap).length;
+    return { cap, pitch: count > fit ? avail / count : 0 };
+  }
+
+  buildRail() {
+    const plan = this.railPlan();
+    const key = plan.cap + '|' + (plan.pitch ? plan.pitch.toFixed(2) : '');
+    if (key === this.railKey) return;
+    this.railKey = key;
+    this.resetWave();
+    this.listEl.empty();
+    this.railIdx = [];
+    this.railPos = new Map();
+    this.centers = null;
+    this.listEl.toggleClass('is-dense', !!plan.pitch);
+    if (plan.pitch) this.listEl.style.setProperty('--gg-rail-pitch', plan.pitch + 'px');
+    else this.listEl.style.removeProperty('--gg-rail-pitch');
     this.headings.forEach((h, i) => {
+      if (h.level > plan.cap) return;
+      this.railPos.set(i, this.railIdx.length);
+      this.railIdx.push(i);
       const item = this.listEl.createEl('button', {
         cls: 'gg-outline-item',
-        attr: { type: 'button' },
+        attr: { type: 'button', tabindex: '-1' },
       });
       item.createSpan({ cls: 'gg-outline-tick' });
       // Not aria-label: Obsidian's tooltip system triggers off that
       // attribute, and a tooltip on every dash fights the preview card.
       // A visually hidden child names the button just as well.
       item.createSpan({ cls: 'gg-outline-label', text: h.heading });
-      // Buttons grab focus on mousedown; letting them would pull the
-      // caret out of the editor and make CodeMirror scroll it back into
-      // view, landing us somewhere other than the heading.
-      item.addEventListener('mousedown', (e) => e.preventDefault());
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        // With the panel open the dashes scrub it; a click commits.
-        this.jumpTo(i);
-      });
     });
+    const prev = this.activeIndex;
+    this.activeIndex = -2;
+    if (prev !== -1) this.setActive(prev);
+  }
 
-    this.buildPanel();
-    this.attachScroll();
-    this.syncActive();
-    this.dock();
+  /** 标题在导轨上对应哪条短横：它自己，或者被省掉时它上面最近一条放上去的标题 */
+  railItemFor(index) {
+    for (let i = index; i >= 0; i--) {
+      const k = this.railPos.get(i);
+      if (k !== undefined) return k;
+    }
+    return -1;
+  }
+
+  /** 每条短横的中心（相对导轨顶部），一次读完缓存起来，滑动时不用每条都量 */
+  railCenters() {
+    if (!this.centers) {
+      const items = this.listEl.children;
+      this.centers = new Float64Array(items.length);
+      for (let k = 0; k < items.length; k++) {
+        this.centers[k] = items[k].offsetTop + items[k].offsetHeight / 2;
+      }
+    }
+    return this.centers;
+  }
+
+  /** 离鼠标最近的短横（点在短横之间的空隙里也算点中它） */
+  nearestItem(mouseY) {
+    const c = this.railCenters();
+    if (!c.length) return -1;
+    const y = mouseY - this.listEl.getBoundingClientRect().top;
+    let lo = 0;
+    let hi = c.length - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (c[mid] < y) lo = mid + 1;
+      else hi = mid;
+    }
+    if (lo > 0 && Math.abs(c[lo - 1] - y) <= Math.abs(c[lo] - y)) lo--;
+    return lo;
   }
 
   /* ---------------- The expanded panel ---------------- */
@@ -744,38 +836,48 @@ class Rail {
     });
   }
 
+  /** 只改鼠标附近（3σ 以内）的短横，加上上一帧鼓起来、这一帧要回落的那些；
+      以前每动一下要量、要改全部短横，标题一多（几百个）就卡 */
   wave(mouseY) {
     const items = this.listEl.children;
-    let nearest = -1;
-    let nearestDist = Infinity;
-
-    for (let i = 0; i < items.length; i++) {
-      const r = items[i].getBoundingClientRect();
-      const dy = mouseY - (r.top + r.height / 2);
-      const d = Math.abs(dy);
-      if (d < nearestDist) {
-        nearestDist = d;
-        nearest = i;
-      }
+    const c = this.railCenters();
+    if (!c.length) return;
+    const y = mouseY - this.listEl.getBoundingClientRect().top;
+    const reach = SIGMA * 3;
+    const next = new Set();
+    const k = this.nearestItem(mouseY);
+    const nearest = k;
+    for (let i = k; i >= 0 && y - c[i] <= reach; i--) next.add(i);
+    for (let i = k + 1; i < c.length && c[i] - y <= reach; i++) next.add(i);
+    for (const i of this.boosted) {
+      if (next.has(i) || !items[i]) continue;
+      const tick = items[i].firstChild;
+      tick.style.width = '';
+      tick.style.height = '';
+    }
+    for (const i of next) {
+      const dy = y - c[i];
       const boost = Math.exp(-(dy * dy) / (2 * SIGMA * SIGMA));
       const tick = items[i].firstChild;
       tick.style.width = BASE_W + MAX_EXTRA * boost + 'px';
       tick.style.height = BASE_H + MAX_EXTRA_H * boost + 'px';
     }
+    this.boosted = next;
 
-    if (nearest !== this.hoverIndex) {
-      if (this.hoverIndex >= 0 && items[this.hoverIndex]) {
-        items[this.hoverIndex].removeClass('is-crest');
+    if (nearest !== this.crest) {
+      if (this.crest >= 0 && items[this.crest]) {
+        items[this.crest].removeClass('is-crest');
       }
-      this.hoverIndex = nearest;
+      this.crest = nearest;
+      this.hoverIndex = nearest >= 0 ? this.railIdx[nearest] : -1;
       if (nearest >= 0) {
         items[nearest].addClass('is-crest');
         if (this.expanded) {
           // The panel already shows every heading, so the rail scrubs it
           // instead of stacking a preview card on top of it.
-          this.setFocusRow(this.rowIndexFor(nearest), true);
+          this.setFocusRow(this.rowIndexFor(this.hoverIndex), true);
         } else if (this.plugin.settings.showPreview) {
-          this.showPreview(nearest, items[nearest]);
+          this.showPreview(this.hoverIndex, items[nearest]);
         }
       }
     }
@@ -787,12 +889,15 @@ class Rail {
       this.raf = 0;
     }
     const items = this.listEl.children;
-    for (let i = 0; i < items.length; i++) {
+    for (const i of this.boosted || []) {
+      if (!items[i]) continue;
       const tick = items[i].firstChild;
       tick.style.width = '';
       tick.style.height = '';
-      items[i].removeClass('is-crest');
     }
+    this.boosted = new Set();
+    if (this.crest >= 0 && items[this.crest]) items[this.crest].removeClass('is-crest');
+    this.crest = -1;
     this.hoverIndex = -1;
     this.hidePreview();
   }
@@ -970,9 +1075,11 @@ class Rail {
     if (prevRow) prevRow.removeClass('is-active');
     this.activeIndex = index;
     const items = this.listEl.children;
-    for (let i = 0; i < items.length; i++) {
-      items[i].toggleClass('is-active', i === index);
+    const on = index >= 0 ? this.railItemFor(index) : -1;
+    for (const el of this.listEl.querySelectorAll('.gg-outline-item.is-active')) {
+      if (el !== items[on]) el.removeClass('is-active');
     }
+    if (on >= 0 && items[on]) items[on].addClass('is-active');
     const row = this.rows.get(index);
     if (row) row.addClass('is-active');
     if (this.plugin.settings.panelFocusBranch) this.applyFolding();
@@ -1027,6 +1134,7 @@ class Rail {
 
   destroy() {
     if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.resizeObs) this.resizeObs.disconnect();
     this.cancelDwell();
     this.cancelClose();
     document.removeEventListener('keydown', this.onDocKey, true);

@@ -2,6 +2,13 @@
 
 All notable changes to gogoga outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
 
+## [Unreleased]
+
+## [0.5.1] - 2026-11-14
+
+### Fixed
+- In large notes with hundreds of headings, the rail grew taller than the window so later headings were out of reach, hovering over it stuttered, and clicks in the gaps between dashes did nothing, so fast clicks often missed (#2). The rail now always fits in the pane: when headings don't fit, only higher-level headings get a dash and hidden ones count toward the dash above them; if even the top level doesn't fit, the dashes pack closer. A click anywhere on the rail jumps to the nearest dash, and moving the mouse only updates the dashes near it. Notes with few headings work as before.
+
 ## [0.5.0] - 2026-11-08
 
 ### Added
@@ -56,6 +63,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.0...0.4.1

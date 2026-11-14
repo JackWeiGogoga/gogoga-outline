@@ -2,6 +2,13 @@
 
 gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。English: [CHANGELOG.md](CHANGELOG.md).
 
+## [Unreleased]
+
+## [0.5.1] - 2026-11-14
+
+### 修复
+- 标题很多的大文件（几百个标题）里，导轨上的短横排得比窗口还长，后面的标题够不着；鼠标滑过导轨明显卡顿；短横之间的空隙点了没反应，快速操作时常常点不动（#2）。现在导轨始终在窗口里：放不下时只显示高层级的标题，被省掉的标题算在它上面那条短横里，最高一级也放不下时短横排密一些；点导轨上任意位置都跳到离鼠标最近的那条；滑动时只更新鼠标附近的短横，不再卡顿。标题少的笔记和以前一样。
+
 ## [0.5.0] - 2026-11-08
 
 ### 新增
@@ -56,6 +63,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...HEAD
+[0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.2...0.5.0
 [0.4.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.1...0.4.2
 [0.4.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.0...0.4.1
