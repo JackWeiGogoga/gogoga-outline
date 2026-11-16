@@ -4,6 +4,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-16
+
 ### 新增
 - 搜索标题（#2，RainyGrass 的建议）：完整大纲顶上加了搜索框，输入后只留下匹配的标题和浅色的上级标题，匹配的字高亮、显示个数；几个词都要出现，不分大小写，「展开到第几级」以外的小标题也能搜到；导轨上匹配的短横变成强调色。鼠标移到导轨上，顶上出现放大镜，点它打开；也可以用命令「搜索标题」，或者在面板里直接打字。↓/↑ 在匹配的标题间挪，回车跳过去，Esc 先清空再关。
 - 设置「显示标题级别」（默认关）：完整大纲里每行前面标上 H1、H2、H3……
@@ -75,7 +77,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.2...0.5.0

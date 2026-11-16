@@ -4,6 +4,8 @@ All notable changes to gogoga outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-16
+
 ### Added
 - Search headings (#2): a search box at the top of the full outline keeps only the matching headings, with their parent headings shown lighter; matched text is highlighted and the count shown. All words must appear, case is ignored, and headings deeper than the panel's level limit are searched too; the matching dashes on the rail turn accent-colored. Hover the rail and click the magnifier at its top, use the `Search headings` command, or just type while the panel has focus. ↓/↑ move between matches, Enter jumps, Esc clears and then closes.
 - Setting "Show heading levels" (off by default): puts H1, H2, H3… in front of each row of the full outline.
@@ -75,7 +77,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...HEAD
+[0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
 [0.5.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.4.2...0.5.0
