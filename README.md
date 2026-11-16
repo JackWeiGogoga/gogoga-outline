@@ -104,6 +104,23 @@ A few more panel options, all off by default:
   the color, weight and font your theme gives that heading level, with its
   size scaled slightly by level too, so levels are easier to tell apart; the
   row you are reading stays accent-colored.
+- `Show heading levels`: puts H1, H2, H3… in front of each row of the full outline.
+
+## Search headings
+
+To find a heading in a long note, the full outline has a search box at the top. Typing
+keeps only the matching headings, with their parent headings in a lighter color so you
+can see which section each one is in; the matched text is highlighted and the number of
+matches shows on the right. Several words separated by spaces must all appear; case
+doesn't matter; headings deeper than the panel's level limit are searched too. While
+searching, the matching dashes on the rail turn accent-colored, so you can see where
+the results are in the note.
+
+- **Open it**: hover the rail and click the magnifier that appears at its top, or use
+  the `Search headings` command (bind a hotkey in Settings → Hotkeys). Typing while the
+  panel has focus also goes into the search box.
+- **Keyboard**: ↓/↑ move between matches, Enter jumps; Esc clears the search, and a
+  second Esc closes the panel (with the outline docked, it hands focus back to the note).
 
 `$formulas$` in headings render in the panel and the preview card.
 

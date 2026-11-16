@@ -375,3 +375,112 @@
 .gg-outline-docked-host[data-gg-outline-side="left"] .markdown-preview-view {
   padding-left: calc(var(--gg-panel-width, 240px) + 24px);
 }
+
+/* ---------------- 搜索标题（#2） ---------------- */
+
+/* 面板顶上的搜索框：面板往下滚时贴在顶端不动 */
+.gg-outline-search {
+  position: sticky;
+  top: -6px;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: -6px -6px 6px;
+  padding: 6px;
+  background: var(--gg-popover-bg, var(--background-primary));
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.gg-outline .gg-outline-search-input {
+  flex: 1;
+  min-width: 0;
+  height: 26px;
+  padding: 0 8px;
+  font-size: 12.5px;
+}
+.gg-outline-search-count {
+  flex: none;
+  color: var(--text-faint);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+.gg-outline-search-count:empty { display: none; }
+
+/* 有搜索词时：原来的列表藏起来，换成结果列表 */
+.gg-outline-results { display: none; flex-direction: column; gap: 1px; }
+.gg-outline-searching .gg-outline-results { display: flex; }
+.gg-outline-searching .gg-outline-panel-list { display: none; }
+.gg-outline .gg-outline-panel .gg-outline-row.is-context { color: var(--text-faint); }
+.gg-outline .gg-outline-panel .gg-outline-row.is-match { color: var(--text-normal); }
+.gg-outline-panel mark.gg-outline-hit {
+  padding: 0;
+  border-radius: 2px;
+  background: var(--text-highlight-bg, rgba(255, 208, 0, 0.4));
+  color: inherit;
+}
+.gg-outline-search-none {
+  padding: 10px 8px;
+  color: var(--text-faint);
+  font-size: 12.5px;
+}
+
+/* 导轨上匹配的短横：强调色 */
+.gg-outline-searching .gg-outline-item.is-match .gg-outline-tick {
+  background-color: var(--interactive-accent);
+  opacity: 1;
+}
+
+/* 导轨顶上的放大镜：鼠标移到导轨上才出来，悬停稍微放大 */
+/* 只去掉 Obsidian 按钮的底色、边框、阴影。不能用 all: unset：带 :hover 的那条更具体，鼠标一移上去就把定位也清掉，按钮跑开、点不中 */
+.gg-outline .gg-outline-search-btn,
+.gg-outline .gg-outline-search-btn:hover,
+.gg-outline .gg-outline-search-btn:focus {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+.gg-outline .gg-outline-search-btn {
+  position: absolute;
+  bottom: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: var(--radius-s, 4px);
+  color: var(--text-faint);
+  cursor: pointer;
+  /* 平时透明但接鼠标：要是平时不接，鼠标从导轨一下挪到它上面时导轨的悬停已经断了，它还没变成能点 */
+  opacity: 0;
+  pointer-events: auto;
+  transform: scale(1);
+  transition: opacity 120ms ease, transform 120ms ease, color 120ms ease;
+}
+.gg-outline[data-side="right"] .gg-outline-search-btn { right: 2px; }
+.gg-outline[data-side="left"] .gg-outline-search-btn { left: 2px; }
+.gg-outline .gg-outline-search-btn svg { width: 14px; height: 14px; }
+.gg-outline:hover .gg-outline-search-btn,
+.gg-outline-is-expanded .gg-outline-search-btn {
+  opacity: 1;
+}
+.gg-outline-empty .gg-outline-search-btn { display: none; }
+.gg-outline .gg-outline-search-btn:hover {
+  color: var(--text-normal);
+  transform: scale(1.2);
+}
+.gg-outline-docked .gg-outline-search-btn { display: none; }
+
+/* 每行前面的 H1、H2……（设置「显示标题级别」，默认关） */
+.gg-outline-ltag { display: none; }
+.gg-outline-ltags .gg-outline-ltag,
+.gg-outline-searching.gg-outline-ltags .gg-outline-ltag {
+  display: inline-block;
+  min-width: 20px;
+  margin-inline-end: 6px;
+  color: var(--text-faint);
+  font-size: 10.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+}

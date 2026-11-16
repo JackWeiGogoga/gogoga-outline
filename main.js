@@ -11,12 +11,19 @@
  * a 50-heading document behaves the same as a 5-heading one.
  * Companion to the gogoga theme. */
 
-const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, Platform, getLanguage, loadMathJax, renderMath, finishRenderMath } = require('obsidian');
+const { Plugin, MarkdownView, PluginSettingTab, Setting, Notice, Platform, getLanguage, loadMathJax, renderMath, finishRenderMath, setIcon } = require('obsidian');
 
 /* UI strings. Keep the en and zh key sets identical. */
 const STRINGS = {
   en: {
     commandToggleOutline: 'Toggle global outline',
+    commandSearch: 'Search headings',
+    searchPlaceholder: 'Search headings',
+    searchCount: '{n}',
+    searchNone: 'No matching headings',
+    searchButton: 'Search headings',
+    levelTagsName: 'Show heading levels',
+    levelTagsDesc: 'Put H1, H2, H3… in front of each row of the full outline.',
     previewEmpty: 'No content in this section yet',
     sideName: 'Position',
     sideDesc: 'Which side of the editor the outline rail sits on.',
@@ -65,6 +72,13 @@ const STRINGS = {
   },
   zh: {
     commandToggleOutline: '展开/收起全局大纲',
+    commandSearch: '搜索标题',
+    searchPlaceholder: '搜索标题',
+    searchCount: '{n} 个',
+    searchNone: '没有匹配的标题',
+    searchButton: '搜索标题',
+    levelTagsName: '显示标题级别',
+    levelTagsDesc: '完整大纲里每行前面标上 H1、H2、H3……',
     previewEmpty: '（本节暂无正文）',
     sideName: '显示位置',
     sideDesc: '大纲导轨贴在编辑区的哪一侧',
@@ -161,6 +175,7 @@ const DEFAULTS = {
   panelOtherDepth: 1,
   panelWrap: false,
   panelHeadingStyle: false,
+  panelLevelTags: false,
   focusMode: false,
   hoverHighlight: false,
 };
@@ -191,6 +206,45 @@ const STAGGER_CAP = 14;  // rows past this all share the last delay
 const MATH_RE = /\$\$?(?!\s)([^$\n]+?)(?<!\s)\$\$?(?!\d)/g;
 
 /** A heading's text, with $formulas$ rendered the way the note shows them. */
+/** 搜索词拆成几个词（空格隔开），全部出现在标题里才算匹配；不分大小写 */
+function searchTerms(query) {
+  return query.toLowerCase().split(/\s+/).filter(Boolean);
+}
+
+/** 标题里每个词出现的位置（给匹配的字加高亮）；有一个词没出现就返回 null */
+function matchRanges(text, terms) {
+  const low = text.toLowerCase();
+  const ranges = [];
+  for (const term of terms) {
+    let at = low.indexOf(term);
+    if (at < 0) return null;
+    while (at >= 0) {
+      ranges.push([at, at + term.length]);
+      at = low.indexOf(term, at + term.length);
+    }
+  }
+  ranges.sort((a, b) => a[0] - b[0]);
+  const merged = [];
+  for (const r of ranges) {
+    const last = merged[merged.length - 1];
+    if (last && r[0] <= last[1]) last[1] = Math.max(last[1], r[1]);
+    else merged.push([r[0], r[1]]);
+  }
+  return merged;
+}
+
+/** 按 ranges 把文字放进 el，匹配的那几段包上 <mark> */
+function fillMarked(el, text, ranges) {
+  el.empty();
+  let last = 0;
+  for (const [a, b] of ranges) {
+    if (a > last) el.appendText(text.slice(last, a));
+    el.createEl('mark', { cls: 'gg-outline-hit', text: text.slice(a, b) });
+    last = b;
+  }
+  if (last < text.length) el.appendText(text.slice(last));
+}
+
 function fillHeading(el, text) {
   el.empty();
   if (!text.includes('$') || typeof renderMath !== 'function') {
@@ -261,7 +315,37 @@ class Rail {
       cls: 'gg-outline-panel',
       attr: { tabindex: '-1' },
     });
+    // 搜索标题（#2）：面板顶上的搜索框；有搜索词时下面换成结果列表（匹配的标题 + 浅色的上级标题）
+    this.query = '';
+    this.matchList = [];
+    this.searchEl = this.panelEl.createDiv({ cls: 'gg-outline-search' });
+    this.searchInput = this.searchEl.createEl('input', {
+      cls: 'gg-outline-search-input',
+      attr: { type: 'search', placeholder: t('searchPlaceholder'), spellcheck: 'false' },
+    });
+    this.searchCount = this.searchEl.createSpan({ cls: 'gg-outline-search-count' });
     this.panelListEl = this.panelEl.createDiv({ cls: 'gg-outline-panel-list' });
+    this.resultsEl = this.panelEl.createDiv({ cls: 'gg-outline-results' });
+    this.searchInput.addEventListener('input', () => this.setQuery(this.searchInput.value));
+    // 点进搜索框：面板固定住，鼠标移开也不收
+    this.searchInput.addEventListener('focus', () => {
+      if (!this.expanded) return;
+      this.pinned = true;
+      this.cancelClose();
+    });
+    this.searchInput.addEventListener('keydown', (e) => this.handleSearchKey(e));
+    // 导轨顶上的放大镜：鼠标移到导轨上才出来，点了打开面板、光标进搜索框
+    this.searchBtn = this.el.createEl('button', {
+      cls: 'gg-outline-search-btn',
+      attr: { type: 'button', tabindex: '-1', 'aria-label': t('searchButton') },
+    });
+    setIcon(this.searchBtn, 'search');
+    this.searchBtn.addEventListener('mousedown', (e) => e.preventDefault());
+    this.searchBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      this.openSearch();
+    });
+    this.searchBtn.addEventListener('mouseenter', () => this.cancelClose());
 
     this.listEl.addEventListener('mousemove', (e) => this.queueWave(e));
     // Buttons grab focus on mousedown; letting them would pull the
@@ -317,6 +401,7 @@ class Rail {
     this.el.toggleClass('gg-outline-wrap', !!this.plugin.settings.panelWrap);
     // #2：按标题样式显示（默认关）
     this.el.toggleClass('gg-outline-hstyle', !!this.plugin.settings.panelHeadingStyle);
+    this.el.toggleClass('gg-outline-ltags', !!this.plugin.settings.panelLevelTags);
     this.el.toggleClass('gg-outline-folding', !!this.plugin.settings.panelFocusBranch);
     this.el.style.setProperty(
       '--gg-panel-width',
@@ -369,6 +454,8 @@ class Rail {
     this.attachScroll();
     this.syncActive();
     this.dock();
+    // 笔记改了、标题重建了：有搜索词就按新标题再搜一遍
+    if (this.query) this.runSearch();
   }
 
   /* ---------------- The rail ---------------- */
@@ -486,6 +573,8 @@ class Rail {
       row.dataset.level = String(depth);
       row.dataset.h = String(h.level);
       const arrow = row.createSpan({ cls: 'gg-outline-arrow' });
+      // 「显示标题级别」开着才加，关着时行里的文字就是标题本身
+      if (this.plugin.settings.panelLevelTags) row.createSpan({ cls: 'gg-outline-ltag', text: 'H' + h.level });
       const label = row.createSpan({ cls: 'gg-outline-row-text' });
       if (fillHeading(label, h.heading)) math = true;
       row.style.paddingInlineStart = 8 + depth * INDENT_STEP + 'px';
@@ -685,7 +774,16 @@ class Rail {
     const start = this.hoverIndex >= 0 ? this.hoverIndex : this.activeIndex;
     this.setFocusRow(this.rowIndexFor(start), true);
     document.addEventListener('keydown', this.onDocKey, true);
-    if (pinned) this.panelEl.focus();
+    if (pinned) {
+      this.panelEl.focus();
+      // 命令执行完 Obsidian 会把焦点还给编辑器：下一帧还不在面板里就再拿回来（方向键、打字才进得了面板）
+      const refocus = () => {
+        if (this.expanded && !this.panelEl.contains(document.activeElement)) this.panelEl.focus();
+      };
+      window.requestAnimationFrame(refocus);
+      window.setTimeout(refocus, 60);
+      window.setTimeout(refocus, 150);
+    }
   }
 
   collapse() {
@@ -697,6 +795,7 @@ class Rail {
     this.expanded = false;
     this.pinned = false;
     this.el.removeClass('gg-outline-is-expanded');
+    this.clearSearch();
     this.setFocusRow(-1);
     document.removeEventListener('keydown', this.onDocKey, true);
     if (this.panelEl.contains(document.activeElement)) {
@@ -786,8 +885,10 @@ class Rail {
       also scroll every scrollable ancestor, including the editor. */
   revealRow(row) {
     const p = this.panelEl;
-    const top = row.offsetTop;
-    const bottom = top + row.offsetHeight;
+    // 顶上的搜索框贴着面板顶端不动：行要露在它下面
+    const head = this.searchEl ? this.searchEl.offsetHeight : 0;
+    const top = row.offsetTop - head;
+    const bottom = row.offsetTop + row.offsetHeight;
     if (top < p.scrollTop) p.scrollTop = top;
     else if (bottom > p.scrollTop + p.clientHeight) {
       p.scrollTop = bottom - p.clientHeight;
@@ -814,10 +915,23 @@ class Rail {
     if (e.key !== 'Escape' || !this.expanded) return;
     e.preventDefault();
     e.stopPropagation();
+    // 有搜索词：第一次 Esc 只清空搜索
+    if (this.query) {
+      this.clearSearch();
+      this.searchInput.focus();
+      return;
+    }
     this.collapse();
   }
 
   handlePanelKey(e) {
+    // 搜索框自己的按键在 handleSearchKey 里处理
+    if (e.target === this.searchInput) return;
+    // 面板拿着焦点时直接打字：转到搜索框里接着输（中文输入法按下的第一个键是 Process）
+    if (!e.ctrlKey && !e.metaKey && !e.altKey && (e.key.length === 1 || e.key === 'Process') && e.key !== ' ') {
+      this.searchInput.focus();
+      return;
+    }
     if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
       e.preventDefault();
       this.moveFocus(e.key === 'ArrowDown' ? 1 : -1);
@@ -829,6 +943,144 @@ class Rail {
       if (!row || !row.hasClass('has-children')) return;
       e.preventDefault();
       if ((e.key === 'ArrowRight') !== this.isOpen(this.focusIndex)) this.toggleRow(this.focusIndex);
+    }
+  }
+
+  /* ---------------- Search ---------------- */
+
+  /** 放大镜、命令「搜索标题」：打开面板（固定住），光标进搜索框 */
+  openSearch() {
+    if (this.headings.length < this.plugin.settings.minHeadings) return;
+    if (!this.expanded) this.expand(true);
+    this.pinned = true;
+    this.cancelClose();
+    const focus = () => {
+      if (!this.expanded || document.activeElement === this.searchInput) return;
+      this.searchInput.focus();
+      this.searchInput.select();
+    };
+    // 每次打开都全选原来的词：接着打字就是换一个词搜
+    this.searchInput.focus();
+    this.searchInput.select();
+    // 从命令面板、快捷键执行完命令后，Obsidian 会把焦点还给编辑器：下一帧再放回来，不然打的字进了正文
+    window.requestAnimationFrame(focus);
+    window.setTimeout(focus, 60);
+    window.setTimeout(focus, 150);
+  }
+
+  setQuery(value) {
+    this.query = value.trim();
+    this.runSearch();
+  }
+
+  clearSearch() {
+    if (!this.query && !this.searchInput.value) return;
+    this.searchInput.value = '';
+    this.query = '';
+    this.runSearch();
+  }
+
+  /**
+   * 按搜索词筛标题：所有层级都搜（面板「展开到第几级」以外的小标题也算），只留匹配的和它们的上级（浅色、给上下文）；
+   * 搜的时候不管折叠，清空后原来的面板原样回来。导轨上匹配的短横标成强调色
+   */
+  runSearch() {
+    const terms = searchTerms(this.query);
+    const on = terms.length > 0;
+    this.el.toggleClass('gg-outline-searching', on);
+    this.resultsEl.empty();
+    this.matchList = [];
+    this.resultRows = new Map();
+    for (const item of this.listEl.querySelectorAll('.gg-outline-item.is-match')) item.removeClass('is-match');
+    if (!on) {
+      this.searchCount.setText('');
+      this.resultFocus = -1;
+      return;
+    }
+    const base = this.headings.reduce((m, h) => Math.min(m, h.level), 6);
+    const parent = [];
+    const stack = [];
+    this.headings.forEach((h, i) => {
+      while (stack.length && this.headings[stack[stack.length - 1]].level >= h.level) stack.pop();
+      parent[i] = stack.length ? stack[stack.length - 1] : -1;
+      stack.push(i);
+    });
+    const hits = new Map();
+    const keep = new Set();
+    this.headings.forEach((h, i) => {
+      const r = matchRanges(h.heading, terms);
+      if (!r) return;
+      hits.set(i, r);
+      for (let p = i; p >= 0 && !keep.has(p); p = parent[p]) keep.add(p);
+    });
+    const items = this.listEl.children;
+    this.headings.forEach((h, i) => {
+      if (!keep.has(i)) return;
+      const hit = hits.get(i);
+      const depth = h.level - base;
+      const row = this.resultsEl.createEl('button', {
+        cls: 'gg-outline-row gg-outline-result' + (hit ? ' is-match' : ' is-context'),
+        attr: { type: 'button', 'data-depth': String(Math.min(depth, 3)), 'data-h': String(h.level) },
+      });
+      row.style.paddingInlineStart = 8 + depth * INDENT_STEP + 'px';
+      if (this.plugin.settings.panelLevelTags) row.createSpan({ cls: 'gg-outline-ltag', text: 'H' + h.level });
+      const label = row.createSpan({ cls: 'gg-outline-row-text' });
+      if (hit) fillMarked(label, h.heading, hit);
+      else fillHeading(label, h.heading);
+      row.addEventListener('mousedown', (e) => e.preventDefault());
+      row.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.jumpTo(i);
+      });
+      if (hit) {
+        row.addEventListener('mouseenter', () => this.setResultFocus(this.matchList.indexOf(i)));
+        this.matchList.push(i);
+        const k = this.railItemFor(i);
+        if (k >= 0 && items[k]) items[k].addClass('is-match');
+      }
+      this.resultRows.set(i, row);
+    });
+    this.searchCount.setText(hits.size ? t('searchCount').replace('{n}', String(hits.size)) : '');
+    if (!hits.size) this.resultsEl.createDiv({ cls: 'gg-outline-search-none', text: t('searchNone') });
+    this.resultFocus = -1;
+    this.setResultFocus(this.matchList.length ? 0 : -1);
+  }
+
+  setResultFocus(k) {
+    const prev = this.resultRows?.get(this.matchList[this.resultFocus]);
+    if (prev) prev.removeClass('is-focus');
+    this.resultFocus = k;
+    const row = this.resultRows?.get(this.matchList[k]);
+    if (!row) return;
+    row.addClass('is-focus');
+    this.revealRow(row);
+  }
+
+  /** 搜索框里：↓/↑ 在匹配的标题间挪（跳过浅色的上级），回车跳过去；Esc 先清空，没字了再关面板（常驻时把焦点还给正文） */
+  handleSearchKey(e) {
+    if (e.isComposing) return;
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      e.preventDefault();
+      e.stopPropagation();
+      const step = e.key === 'ArrowDown' ? 1 : -1;
+      if (this.query) {
+        const n = this.matchList.length;
+        if (n) this.setResultFocus(Math.max(0, Math.min(n - 1, this.resultFocus + step)));
+      } else {
+        this.moveFocus(step);
+      }
+    } else if (e.key === 'Enter') {
+      e.preventDefault();
+      e.stopPropagation();
+      const index = this.query ? this.matchList[this.resultFocus] : this.focusIndex;
+      if (index !== undefined && index >= 0) this.jumpTo(index);
+    } else if (e.key === 'Escape') {
+      // 悬停 / 命令打开的面板：document 上的 Esc 处理会先收到（先清空、再关）；常驻时没有它，在这里处理
+      if (!this.docked()) return;
+      e.preventDefault();
+      e.stopPropagation();
+      if (this.query) this.clearSearch();
+      else if (this.view.editor) this.view.editor.focus();
     }
   }
 
@@ -1178,6 +1430,17 @@ module.exports = class GogogaOutline extends Plugin {
     });
 
     this.addCommand({
+      id: 'search-headings',
+      name: t('commandSearch'),
+      checkCallback: (checking) => {
+        const rail = this.activeRail();
+        if (!rail || rail.headings.length < this.settings.minHeadings) return false;
+        if (!checking) rail.openSearch();
+        return true;
+      },
+    });
+
+    this.addCommand({
       id: 'toggle-focus-mode',
       name: t('commandToggleFocus'),
       callback: () => this.toggleWriting('focusMode', true),
@@ -1449,6 +1712,16 @@ class GogogaOutlineSettings extends PluginSettingTab {
       .addToggle((tg) =>
         tg.setValue(this.plugin.settings.panelHeadingStyle).onChange(async (v) => {
           this.plugin.settings.panelHeadingStyle = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
+      .setName(t('levelTagsName'))
+      .setDesc(t('levelTagsDesc'))
+      .addToggle((tg) =>
+        tg.setValue(this.plugin.settings.panelLevelTags).onChange(async (v) => {
+          this.plugin.settings.panelLevelTags = v;
           await this.plugin.saveSettings();
         })
       );
