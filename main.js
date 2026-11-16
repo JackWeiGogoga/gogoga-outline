@@ -51,6 +51,9 @@ const STRINGS = {
     focusBranchDesc: 'The heading you are reading (or just clicked) is expanded all the way, with the headings above it opened; everything else folds down to the level set below. Arrows in front of headings expand one level on click, everything on double-click.',
     otherDepthName: 'Levels shown for other headings',
     otherDepthDesc: 'With "Expand only the current heading" on, how many levels the rest of the outline shows. In a note under one single top heading, levels count from the headings below it.',
+    otherDepthAll: 'All',
+    foldArrowsName: 'Fold arrows',
+    foldArrowsDesc: 'Headings with subheadings get an arrow in the full outline: click it to fold or unfold that section, double-click to unfold everything under it. Everything starts unfolded, and folds last while the note stays open.',
     wrapName: 'Show full titles',
     wrapDesc: 'Long headings wrap onto more lines instead of being cut off.',
     headingStyleName: 'Show headings in their heading style',
@@ -106,6 +109,9 @@ const STRINGS = {
     focusBranchDesc: '正在看的（或刚点的）标题全部展开，它的上级一路打开，其余标题折叠到下面设的层级；标题前的小箭头单击展开一层、双击全部展开',
     otherDepthName: '其他标题显示到第几级',
     otherDepthDesc: '打开「只展开当前标题」后，其余部分显示几级标题；整篇只有一个一级标题时，从它下面一级算起',
+    otherDepthAll: '全部',
+    foldArrowsName: '标题折叠箭头',
+    foldArrowsDesc: '完整大纲里有子标题的行前面显示小箭头：单击折叠或展开这一节，双击展开它下面的全部标题。默认全部展开，折叠状态在这篇笔记打开期间一直保留',
     wrapName: '显示完整标题',
     wrapDesc: '太长的标题换行显示全文，不再省略成一行',
     headingStyleName: '按标题样式显示',
@@ -172,6 +178,7 @@ const DEFAULTS = {
   panelStayOpen: false,
   panelDocked: false,
   panelFocusBranch: false,
+  panelFoldArrows: false, // 标题折叠箭头：默认全部展开，手动折叠（像 Dynamic Outline）
   panelOtherDepth: 1,
   panelWrap: false,
   panelHeadingStyle: false,
@@ -433,7 +440,7 @@ class Rail {
     // #2：按标题样式显示（默认关）
     this.el.toggleClass('gg-outline-hstyle', !!this.plugin.settings.panelHeadingStyle);
     this.el.toggleClass('gg-outline-ltags', !!this.plugin.settings.panelLevelTags);
-    this.el.toggleClass('gg-outline-folding', !!this.plugin.settings.panelFocusBranch);
+    this.el.toggleClass('gg-outline-folding', this.folds());
     this.el.style.setProperty(
       '--gg-panel-width',
       this.plugin.settings.panelWidth + 'px'
@@ -737,6 +744,11 @@ class Rail {
       way along with the headings above it, and everything else folds down
       to the configured depth — so a note with a single top heading still
       folds. */
+  /** 行前面有没有折叠箭头：「标题折叠箭头」或「只展开当前标题」开着任一个 */
+  folds() {
+    return !!(this.plugin.settings.panelFoldArrows || this.plugin.settings.panelFocusBranch);
+  }
+
   isOpen(index) {
     if (this.manualClosed.has(index)) return false;
     if (this.manualOpen.has(index)) return true;
@@ -784,7 +796,7 @@ class Rail {
   }
 
   applyFolding() {
-    const folding = !!this.plugin.settings.panelFocusBranch;
+    const folding = this.folds();
     for (const [i, row] of this.rows) {
       row.toggleClass('is-folded-away', folding && !this.isVisible(i));
       const open = this.isOpen(i);
@@ -1048,7 +1060,7 @@ class Rail {
     } else if (e.key === 'Enter' && this.focusIndex >= 0) {
       e.preventDefault();
       this.jumpTo(this.focusIndex);
-    } else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && this.plugin.settings.panelFocusBranch) {
+    } else if ((e.key === 'ArrowRight' || e.key === 'ArrowLeft') && this.folds()) {
       const row = this.rows.get(this.focusIndex);
       if (!row || !row.hasClass('has-children')) return;
       e.preventDefault();
@@ -1855,17 +1867,30 @@ class GogogaOutlineSettings extends PluginSettingTab {
       new Setting(containerEl)
         .setName(t('otherDepthName'))
         .setDesc(t('otherDepthDesc'))
-        .addSlider((s) =>
-          s
-            .setLimits(1, 3, 1)
-            .setDynamicTooltip()
-            .setValue(this.plugin.settings.panelOtherDepth)
+        .addDropdown((d) =>
+          d
+            .addOption('1', '1')
+            .addOption('2', '2')
+            .addOption('3', '3')
+            // 「全部」= 6 级：其余标题不再自动折叠，只有手动点的箭头收起
+            .addOption('6', t('otherDepthAll'))
+            .setValue(String(this.plugin.settings.panelOtherDepth))
             .onChange(async (v) => {
-              this.plugin.settings.panelOtherDepth = v;
+              this.plugin.settings.panelOtherDepth = Number(v);
               await this.plugin.saveSettings();
             })
         );
     }
+
+    new Setting(containerEl)
+      .setName(t('foldArrowsName'))
+      .setDesc(t('foldArrowsDesc'))
+      .addToggle((tg) =>
+        tg.setValue(!!this.plugin.settings.panelFoldArrows).onChange(async (v) => {
+          this.plugin.settings.panelFoldArrows = v;
+          await this.plugin.saveSettings();
+        })
+      );
 
     new Setting(containerEl)
       .setName(t('wrapName'))

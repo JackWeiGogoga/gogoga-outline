@@ -4,6 +4,10 @@ All notable changes to gogoga outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+- "Fold arrows" setting (off by default, suggested by RainyGrass in #2): headings with subheadings get an arrow in the full outline and everything starts unfolded; click to fold or unfold that section, double-click to unfold everything under it. Folds last while the note stays open.
+- "Levels shown for other headings" has an "All" option, so with "Expand only the current heading" on the rest of the outline can stay unfolded except for the arrows you click.
+
 ### Fixed
 - Searching headings on phones (#2, reported by RainyGrass):
   - When the keyboard came up the panel ran off the screen and the search box went out of sight above it. On phones the panel now sits below the title bar, keeps clear of the bottom navigation bar and the keyboard, shrinks with the visible area, and keeps the search box at the top.

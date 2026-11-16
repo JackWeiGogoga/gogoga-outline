@@ -512,8 +512,9 @@
 .gg-outline.gg-outline-mobile .gg-outline-search-input { height: 32px; font-size: 16px; }
 .gg-outline-mobile.gg-outline-is-expanded .gg-outline-search-btn { display: none; }
 
-/* 标题很多时（几百个），看不见的行先不排版：搜索换词、打开面板时只排可见的那些 */
-.gg-outline-panel .gg-outline-row {
+/* 标题很多时（几百个），看不见的结果行先不排版：搜索换词时只排可见的那些。
+   只给搜索结果：面板列表折叠、展开时要按真实高度把被点的行留在原位，占位高度会让它偏几像素 */
+.gg-outline-panel .gg-outline-result {
   content-visibility: auto;
   contain-intrinsic-size: auto 26px;
 }
@@ -522,3 +523,5 @@
   transition: none;
   transition-delay: 0ms;
 }
+/* 手机上折叠箭头点的区域大一点 */
+.gg-outline-mobile.gg-outline-folding .gg-outline-arrow { width: 20px; font-size: 11px; }

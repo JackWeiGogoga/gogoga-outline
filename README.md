@@ -98,7 +98,14 @@ A few more panel options, all off by default:
   heading counts as the title and levels count from the headings below
   it. Arrows appear in
   front of headings: click to expand or collapse one level, double-click to
-  expand the whole branch; ←/→ work too when the panel has focus.
+  expand the whole branch; ←/→ work too when the panel has focus. Set
+  `Levels shown for other headings` to `All` and only the arrows you click
+  fold anything.
+- `Fold arrows` (off by default): headings with subheadings get an arrow in
+  the full outline and everything starts unfolded; click to fold or unfold
+  that section, double-click to unfold everything under it, or use ←/→ when
+  the panel has focus. Folds last while the note stays open and reset when
+  you switch notes; search ignores them.
 - `Show full titles`: long headings wrap instead of being cut off.
 - `Show headings in their heading style`: each row in the full outline takes
   the color, weight and font your theme gives that heading level, with its
