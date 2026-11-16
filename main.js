@@ -666,6 +666,8 @@ class Rail {
       row.dataset.level = String(depth);
       row.dataset.h = String(h.level);
       const arrow = row.createSpan({ cls: 'gg-outline-arrow' });
+      // 折叠箭头用图标（以前是 9px 的 ▸ 字符，太小不好点）；没有子标题的行也留着这个位置，标题文字对齐
+      setIcon(arrow, 'chevron-right');
       // 「显示标题级别」开着才加，关着时行里的文字就是标题本身
       if (this.plugin.settings.panelLevelTags) row.createSpan({ cls: 'gg-outline-ltag', text: 'H' + h.level });
       const label = row.createSpan({ cls: 'gg-outline-row-text' });

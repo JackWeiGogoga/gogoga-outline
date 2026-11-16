@@ -297,24 +297,32 @@
 .gg-outline-arrow {
   display: none;
   flex: none;
-  width: 12px;
-  margin-inline-start: -4px;
-  text-align: center;
-  color: var(--text-faint);
-  font-size: 9px;
-  border-radius: 3px;
+  align-self: center;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-inline-start: -6px;
+  border-radius: var(--radius-s, 4px);
+  color: var(--text-muted);
+  cursor: pointer;
 }
-.gg-outline-folding .gg-outline-arrow { display: inline-block; }
-.gg-outline-folding .gg-outline-row.has-children .gg-outline-arrow::before {
-  content: "▸";
-  display: inline-block;
+.gg-outline-folding .gg-outline-arrow { display: inline-flex; }
+.gg-outline-arrow svg {
+  width: 14px;
+  height: 14px;
+  stroke-width: 2.25;
+  visibility: hidden;
   transition: transform 120ms ease;
 }
-.gg-outline-folding .gg-outline-row.has-children.is-open .gg-outline-arrow::before { transform: rotate(90deg); }
+.gg-outline-folding .gg-outline-row.has-children .gg-outline-arrow svg { visibility: visible; }
+.gg-outline-folding .gg-outline-row.has-children.is-open .gg-outline-arrow svg { transform: rotate(90deg); }
 .gg-outline-folding .gg-outline-row.has-children .gg-outline-arrow:hover {
   color: var(--text-normal);
   background-color: var(--background-modifier-hover);
 }
+/* 没有子标题的行：箭头位置空着，不接点击，点到就是点这一行 */
+.gg-outline-folding .gg-outline-row:not(.has-children) .gg-outline-arrow { pointer-events: none; }
 .gg-outline .gg-outline-panel .gg-outline-row.is-folded-away { display: none; }
 
 /* "Show full titles": long headings wrap instead of trailing off */
@@ -524,4 +532,5 @@
   transition-delay: 0ms;
 }
 /* 手机上折叠箭头点的区域大一点 */
-.gg-outline-mobile.gg-outline-folding .gg-outline-arrow { width: 20px; font-size: 11px; }
+.gg-outline-mobile.gg-outline-folding .gg-outline-arrow { width: 24px; height: 24px; margin-inline-start: -8px; }
+.gg-outline-mobile .gg-outline-arrow svg { width: 16px; height: 16px; }
