@@ -307,6 +307,16 @@ class Rail {
     this.dwellAnchor = null;
     this.onScroll = () => this.syncActive();
     this.onDocKey = (e) => this.handleDocKey(e);
+    // 手机、平板：触屏上没有鼠标移开、没有 Esc，点面板外面收起；键盘弹出时面板跟着可见区域缩
+    this.mobile = Platform.isMobile;
+    this.layoutRaf = 0;
+    this.searchRaf = 0;
+    this.onOutside = (e) => {
+      if (!this.expanded || this.docked()) return;
+      if (this.el.contains(e.target)) return;
+      this.collapse();
+    };
+    this.onViewport = () => this.queueLayout();
 
     this.el = view.contentEl.createDiv({ cls: 'gg-outline' });
     this.listEl = this.el.createDiv({ cls: 'gg-outline-list' });
@@ -359,10 +369,8 @@ class Rail {
       // With the panel open the dashes scrub it; a click commits.
       if (k >= 0) this.jumpTo(this.railIdx[k]);
     });
-    // 笔记窗格高度变了：导轨能放下的标题数跟着变
-    this.resizeObs = new ResizeObserver(() => {
-      if (this.headings.length >= this.plugin.settings.minHeadings) this.buildRail();
-    });
+    // 笔记窗格高度变了：导轨能放下的标题数跟着变。键盘弹出、收起的动画里高度一帧一变，合并到下一帧只做一次
+    this.resizeObs = new ResizeObserver(() => this.queueLayout());
     this.resizeObs.observe(view.contentEl);
     this.listEl.addEventListener('mouseenter', () => this.cancelClose());
     this.listEl.addEventListener('mouseleave', () => this.onLeave(true));
@@ -398,6 +406,7 @@ class Rail {
     this.el.toggleClass('gg-outline-docked', this.docked());
     if (wasDocked && !this.docked()) this.collapse();
     this.el.dataset.side = this.plugin.settings.side;
+    this.el.toggleClass('gg-outline-mobile', this.mobile && !this.docked());
     this.el.toggleClass('gg-outline-wrap', !!this.plugin.settings.panelWrap);
     // #2：按标题样式显示（默认关）
     this.el.toggleClass('gg-outline-hstyle', !!this.plugin.settings.panelHeadingStyle);
@@ -416,10 +425,32 @@ class Rail {
       : this.view.contentEl.querySelector('.cm-scroller');
   }
 
-  refresh() {
+  /** 标题结构（文件、视图模式、每个标题的级别和文字）。没变就不用重建导轨和面板 */
+  structureKey(file, headings) {
+    return (file ? file.path : '') + '\n' + this.view.getMode() + '\n' + headings.map((h) => h.level + ' ' + h.heading).join('\n');
+  }
+
+  /** force：设置改了、公式渲染好了，要整个重画 */
+  refresh(force) {
     const file = this.view.file;
     const cache = file ? this.plugin.app.metadataCache.getFileCache(file) : null;
-    this.headings = (cache && cache.headings) || [];
+    const headings = (cache && cache.headings) || [];
+    // 换了一篇笔记：上一篇的搜索不带过来；没常驻时面板也收起
+    if (this.shownFile !== undefined && this.shownFile !== file) {
+      if (this.docked()) this.clearSearch();
+      else this.collapse();
+    }
+    this.shownFile = file;
+    const key = this.structureKey(file, headings);
+    if (!force && key === this.structureSig) {
+      // 只是正文改了（标题位置挪了）：换上新位置、对一下当前标题，不重建（手机上每打一个字都重建会卡）
+      this.headings = headings;
+      this.syncActive();
+      return;
+    }
+    this.structureSig = key;
+    this.headings = headings;
+    this.resultCache = null;
     if (this.foldFile !== file) {
       this.foldFile = file;
       this.manualOpen.clear();
@@ -507,6 +538,39 @@ class Rail {
     const prev = this.activeIndex;
     this.activeIndex = -2;
     if (prev !== -1) this.setActive(prev);
+    // 导轨重建了（窗格高度变了）：搜索中的匹配标记补回去
+    if (this.query) this.markRail();
+  }
+
+  /** 合并到下一帧：重建导轨（手机上面板开着时导轨藏着，收起再建）、手机面板对齐可见区域 */
+  queueLayout() {
+    if (this.layoutRaf) return;
+    this.layoutRaf = window.requestAnimationFrame(() => {
+      this.layoutRaf = 0;
+      if (!(this.mobile && this.expanded) && this.headings.length >= this.plugin.settings.minHeadings) this.buildRail();
+      this.layoutMobile();
+    });
+  }
+
+  /**
+   * 手机上面板顶在标题栏下面，底边让开底部导航栏、键盘（可见区域），高度用样式跟着缩。
+   * 键盘弹出时有的系统缩窗口、有的只缩可见区域（visualViewport），两种都算
+   */
+  layoutMobile() {
+    if (!this.mobile || !this.expanded || this.docked()) return;
+    const host = this.view.contentEl.getBoundingClientRect();
+    let top = 8;
+    const head = this.view.headerEl && this.view.headerEl.getBoundingClientRect();
+    if (head && head.height && head.bottom > host.top) top = Math.max(top, head.bottom - host.top + 8);
+    let edge = host.bottom;
+    const vv = window.visualViewport;
+    if (vv) edge = Math.min(edge, vv.offsetTop + vv.height);
+    for (const bar of document.querySelectorAll('.mobile-navbar, .mobile-toolbar')) {
+      const r = bar.getBoundingClientRect();
+      if (r.height && r.top < edge && r.bottom > host.top + top) edge = Math.min(edge, r.top);
+    }
+    this.el.style.setProperty('--gg-m-top', top + 'px');
+    this.el.style.setProperty('--gg-m-bottom', Math.max(8, host.bottom - edge + 8) + 'px');
   }
 
   /** 标题在导轨上对应哪条短横：它自己，或者被省掉时它上面最近一条放上去的标题 */
@@ -757,7 +821,8 @@ class Rail {
     // so capping it at 80% of the pane keeps both ends on screen.
     const host = this.view.contentEl.getBoundingClientRect();
     // 常驻时面板占满笔记的高度（样式里定），不按 80% 限高
-    if (this.docked()) this.panelEl.style.removeProperty('max-height');
+    // 手机上高度由样式按可见区域定（键盘弹出会跟着缩），不写死像素
+    if (this.docked() || this.mobile) this.panelEl.style.removeProperty('max-height');
     else this.panelEl.style.maxHeight = Math.round(host.height * 0.8) + 'px';
 
     this.hidePreview();
@@ -766,6 +831,14 @@ class Rail {
     this.panelEl.removeClass('is-anchored');
     this.panelEl.style.removeProperty('--gg-panel-shift');
     this.el.addClass('gg-outline-is-expanded');
+    if (this.mobile && !this.docked()) {
+      this.layoutMobile();
+      document.addEventListener('pointerdown', this.onOutside, true);
+      if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', this.onViewport);
+        window.visualViewport.addEventListener('scroll', this.onViewport);
+      }
+    }
     // Resting on a dash is what opened this, so that dash is what the
     // user is looking at — it takes the highlight. The command path has
     // no crest, so it falls back to the section currently on screen.
@@ -798,11 +871,26 @@ class Rail {
     this.clearSearch();
     this.setFocusRow(-1);
     document.removeEventListener('keydown', this.onDocKey, true);
+    this.removeMobileListeners();
     if (this.panelEl.contains(document.activeElement)) {
       // Only when we took focus (pinned mode) — otherwise blurring here
       // would yank the caret out of an editor we never touched.
-      this.panelEl.blur();
-      if (this.view.editor) this.view.editor.focus();
+      // 手机上只让搜索框失焦（收起键盘），不把焦点给正文：那样会把键盘又弹出来
+      if (this.mobile) document.activeElement.blur();
+      else {
+        this.panelEl.blur();
+        if (this.view.editor) this.view.editor.focus();
+      }
+    }
+    // 面板开着时没重建导轨（藏着），收起后按现在的高度补上
+    if (this.mobile) this.queueLayout();
+  }
+
+  removeMobileListeners() {
+    document.removeEventListener('pointerdown', this.onOutside, true);
+    if (window.visualViewport) {
+      window.visualViewport.removeEventListener('resize', this.onViewport);
+      window.visualViewport.removeEventListener('scroll', this.onViewport);
     }
   }
 
@@ -970,11 +1058,20 @@ class Rail {
 
   setQuery(value) {
     this.query = value.trim();
-    this.runSearch();
+    // 连着打字（手机输入法一次上好几个字）合并到下一帧搜一次
+    if (this.searchRaf) return;
+    this.searchRaf = window.requestAnimationFrame(() => {
+      this.searchRaf = 0;
+      this.runSearch();
+    });
   }
 
   clearSearch() {
-    if (!this.query && !this.searchInput.value) return;
+    if (this.searchRaf) {
+      window.cancelAnimationFrame(this.searchRaf);
+      this.searchRaf = 0;
+    }
+    if (!this.query && !this.searchInput.value && !this.el.hasClass('gg-outline-searching')) return;
     this.searchInput.value = '';
     this.query = '';
     this.runSearch();
@@ -988,71 +1085,119 @@ class Rail {
     const terms = searchTerms(this.query);
     const on = terms.length > 0;
     this.el.toggleClass('gg-outline-searching', on);
-    this.resultsEl.empty();
     this.matchList = [];
     this.resultRows = new Map();
-    for (const item of this.listEl.querySelectorAll('.gg-outline-item.is-match')) item.removeClass('is-match');
+    this.markRail(true);
+    if (this.noneEl) this.noneEl.toggle(false);
     if (!on) {
       this.searchCount.setText('');
       this.resultFocus = -1;
       return;
     }
-    const base = this.headings.reduce((m, h) => Math.min(m, h.level), 6);
-    const parent = [];
-    const stack = [];
-    this.headings.forEach((h, i) => {
-      while (stack.length && this.headings[stack[stack.length - 1]].level >= h.level) stack.pop();
-      parent[i] = stack.length ? stack[stack.length - 1] : -1;
-      stack.push(i);
-    });
+    const cache = this.searchRows();
     const hits = new Map();
     const keep = new Set();
     this.headings.forEach((h, i) => {
       const r = matchRanges(h.heading, terms);
       if (!r) return;
       hits.set(i, r);
-      for (let p = i; p >= 0 && !keep.has(p); p = parent[p]) keep.add(p);
+      for (let p = i; p >= 0 && !keep.has(p); p = cache.parent[p]) keep.add(p);
     });
-    const items = this.listEl.children;
+    // 每个标题一行，第一次搜时建好；之后每次只改显示、隐藏和高亮，变了的行才动（标题多时每打一个字都重建会卡）
     this.headings.forEach((h, i) => {
-      if (!keep.has(i)) return;
+      const c = cache.rows[i];
       const hit = hits.get(i);
+      const state = !keep.has(i) ? '' : hit ? 'm' + JSON.stringify(hit) : 'c';
+      if (state !== c.state) {
+        c.state = state;
+        c.row.toggle(state !== '');
+        c.row.toggleClass('is-match', !!hit);
+        c.row.toggleClass('is-context', state === 'c');
+        c.row.removeClass('is-focus');
+        if (state !== '') {
+          const was = c.marked;
+          if (hit) {
+            c.label.empty();
+            fillMarked(c.label, h.heading, hit);
+            c.marked = true;
+          } else if (was) {
+            c.label.empty();
+            fillHeading(c.label, h.heading);
+            c.marked = false;
+          }
+        }
+      }
+      if (hit) this.matchList.push(i);
+      if (state !== '') this.resultRows.set(i, c.row);
+    });
+    this.markRail();
+    this.searchCount.setText(hits.size ? t('searchCount').replace('{n}', String(hits.size)) : '');
+    if (!hits.size) {
+      if (!this.noneEl) this.noneEl = this.resultsEl.createDiv({ cls: 'gg-outline-search-none', text: t('searchNone') });
+      this.noneEl.toggle(true);
+    }
+    this.resultFocus = -1;
+    this.setResultFocus(this.matchList.length ? 0 : -1);
+  }
+
+  /** 搜索结果用的行：每个标题一行（先藏着），连同上级关系一起缓存；标题结构变了才重建 */
+  searchRows() {
+    if (this.resultCache) return this.resultCache;
+    this.resultsEl.empty();
+    this.noneEl = null;
+    const base = this.headings.reduce((m, h) => Math.min(m, h.level), 6);
+    const parent = [];
+    const stack = [];
+    const rows = [];
+    this.headings.forEach((h, i) => {
+      while (stack.length && this.headings[stack[stack.length - 1]].level >= h.level) stack.pop();
+      parent[i] = stack.length ? stack[stack.length - 1] : -1;
+      stack.push(i);
       const depth = h.level - base;
       const row = this.resultsEl.createEl('button', {
-        cls: 'gg-outline-row gg-outline-result' + (hit ? ' is-match' : ' is-context'),
+        cls: 'gg-outline-row gg-outline-result',
         attr: { type: 'button', 'data-depth': String(Math.min(depth, 3)), 'data-h': String(h.level) },
       });
       row.style.paddingInlineStart = 8 + depth * INDENT_STEP + 'px';
+      row.toggle(false);
       if (this.plugin.settings.panelLevelTags) row.createSpan({ cls: 'gg-outline-ltag', text: 'H' + h.level });
       const label = row.createSpan({ cls: 'gg-outline-row-text' });
-      if (hit) fillMarked(label, h.heading, hit);
-      else fillHeading(label, h.heading);
+      fillHeading(label, h.heading);
       row.addEventListener('mousedown', (e) => e.preventDefault());
       row.addEventListener('click', (e) => {
         e.preventDefault();
         this.jumpTo(i);
       });
-      if (hit) {
-        row.addEventListener('mouseenter', () => this.setResultFocus(this.matchList.indexOf(i)));
-        this.matchList.push(i);
-        const k = this.railItemFor(i);
-        if (k >= 0 && items[k]) items[k].addClass('is-match');
-      }
-      this.resultRows.set(i, row);
+      row.addEventListener('mouseenter', () => {
+        const k = this.matchList.indexOf(i);
+        if (k >= 0) this.setResultFocus(k);
+      });
+      rows.push({ row, label, state: '', marked: false });
     });
-    this.searchCount.setText(hits.size ? t('searchCount').replace('{n}', String(hits.size)) : '');
-    if (!hits.size) this.resultsEl.createDiv({ cls: 'gg-outline-search-none', text: t('searchNone') });
-    this.resultFocus = -1;
-    this.setResultFocus(this.matchList.length ? 0 : -1);
+    this.resultCache = { rows, parent };
+    return this.resultCache;
+  }
+
+  /** 导轨上匹配的短横标成强调色；clear 只清掉 */
+  markRail(clear) {
+    for (const item of this.listEl.querySelectorAll('.gg-outline-item.is-match')) item.removeClass('is-match');
+    if (clear || !this.query) return;
+    const items = this.listEl.children;
+    for (const i of this.matchList) {
+      const k = this.railItemFor(i);
+      if (k >= 0 && items[k]) items[k].addClass('is-match');
+    }
   }
 
   setResultFocus(k) {
-    const prev = this.resultRows?.get(this.matchList[this.resultFocus]);
-    if (prev) prev.removeClass('is-focus');
+    // 结果行是复用的：记住上一次高亮的那行，换词搜时也能清掉
+    if (this.resultFocusRow) this.resultFocusRow.removeClass('is-focus');
+    this.resultFocusRow = null;
     this.resultFocus = k;
     const row = this.resultRows?.get(this.matchList[k]);
     if (!row) return;
     row.addClass('is-focus');
+    this.resultFocusRow = row;
     this.revealRow(row);
   }
 
@@ -1136,7 +1281,7 @@ class Rail {
           // The panel already shows every heading, so the rail scrubs it
           // instead of stacking a preview card on top of it.
           this.setFocusRow(this.rowIndexFor(this.hoverIndex), true);
-        } else if (this.plugin.settings.showPreview) {
+        } else if (this.plugin.settings.showPreview && !this.mobile) {
           this.showPreview(this.hoverIndex, items[nearest]);
         }
       }
@@ -1394,6 +1539,9 @@ class Rail {
 
   destroy() {
     if (this.raf) cancelAnimationFrame(this.raf);
+    if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
+    if (this.searchRaf) cancelAnimationFrame(this.searchRaf);
+    this.removeMobileListeners();
     if (this.resizeObs) this.resizeObs.disconnect();
     this.cancelDwell();
     this.cancelClose();
@@ -1412,7 +1560,7 @@ module.exports = class GogogaOutline extends Plugin {
     // Headings with $formulas$ render them; MathJax loads once for the app
     if (typeof loadMathJax === 'function') {
       loadMathJax().then(() => {
-        for (const rail of this.rails.values()) rail.refresh();
+        for (const rail of this.rails.values()) rail.refresh(true);
       }, () => {});
     }
 
@@ -1531,7 +1679,7 @@ module.exports = class GogogaOutline extends Plugin {
     await this.saveData(this.settings);
     for (const rail of this.rails.values()) {
       rail.apply();
-      rail.refresh();
+      rail.refresh(true);
     }
   }
 

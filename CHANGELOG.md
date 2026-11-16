@@ -4,6 +4,15 @@ All notable changes to gogoga outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+- Searching headings on phones (#2, reported by RainyGrass):
+  - When the keyboard came up the panel ran off the screen and the search box went out of sight above it. On phones the panel now sits below the title bar, keeps clear of the bottom navigation bar and the keyboard, shrinks with the visible area, and keeps the search box at the top.
+  - The panel couldn't be closed after hiding the keyboard. Tapping outside it now closes it; hiding just the keyboard leaves it open so you can keep scrolling the results.
+  - Switching to another note kept the previous note's search open. Switching now closes the panel and clears the search (with the outline kept open, it only clears the search).
+  - Lag: editing text without touching headings no longer rebuilds the whole outline; the rail is no longer rebuilt on every frame of the keyboard animation; search results are reused, so each keystroke only updates the rows that changed, without starting transitions on hundreds of rows.
+  - Touching the rail on a touch screen no longer pops up the section preview.
+- Matches marked on the rail during a search are no longer lost when the rail is rebuilt (for example after the window height changes).
+
 ## [0.7.0] - 2026-11-16
 
 ### Added

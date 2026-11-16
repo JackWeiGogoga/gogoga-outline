@@ -484,3 +484,39 @@
   font-weight: 500;
   font-variant-numeric: tabular-nums;
 }
+
+/* ---------------- 手机、平板（触屏） ----------------
+   面板不再按导轨竖向居中：顶在标题栏下面，底边让开底部导航栏和键盘（JS 量好写进
+   --gg-m-top / --gg-m-bottom），高度跟着可见区域缩，搜索框一直在最上面。展开时导轨藏起来 */
+.gg-outline.gg-outline-mobile.gg-outline-is-expanded {
+  top: var(--gg-m-top, calc(var(--header-height, 40px) + 8px));
+  bottom: var(--gg-m-bottom, 12px);
+  transform: none;
+  max-height: none;
+}
+.gg-outline-mobile.gg-outline-is-expanded .gg-outline-list,
+.gg-outline-mobile .gg-outline-preview { display: none; }
+.gg-outline.gg-outline-mobile .gg-outline-panel {
+  top: 0;
+  max-height: 100%;
+  width: min(var(--gg-panel-width, 240px), calc(100vw - 32px));
+  transform: translateX(var(--gg-panel-slide, 8px));
+}
+.gg-outline.gg-outline-mobile.gg-outline-is-expanded .gg-outline-panel {
+  transform: translateX(0);
+}
+/* 手指点的行高一点，好点中 */
+.gg-outline.gg-outline-mobile .gg-outline-panel .gg-outline-row { padding-block: 6px; }
+.gg-outline.gg-outline-mobile .gg-outline-search-input { height: 32px; font-size: 16px; }
+.gg-outline-mobile.gg-outline-is-expanded .gg-outline-search-btn { display: none; }
+
+/* 标题很多时（几百个），看不见的行先不排版：搜索换词、打开面板时只排可见的那些 */
+.gg-outline-panel .gg-outline-row {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 26px;
+}
+/* 搜索结果每打一个字都在换：不要淡入和变色过渡，几百行一起起过渡动画会卡 */
+.gg-outline .gg-outline-panel .gg-outline-result {
+  transition: none;
+  transition-delay: 0ms;
+}
