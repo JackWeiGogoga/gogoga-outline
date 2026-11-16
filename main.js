@@ -319,6 +319,10 @@ class Rail {
     this.onViewport = () => this.queueLayout();
 
     this.el = view.contentEl.createDiv({ cls: 'gg-outline' });
+    // 插件刚启用（或 Obsidian 刚启动）时样式表比这段代码晚到：没样式的面板会整个铺在笔记上闪一下，
+    // 把视图撑高、连标题栏一起滚走（#2 桌面端反馈）。先藏着，样式到了再显示，也就不会播收起动画
+    this.el.style.display = 'none';
+    this.waitForStyles();
     this.listEl = this.el.createDiv({ cls: 'gg-outline-list' });
     this.previewEl = this.el.createDiv({ cls: 'gg-outline-preview' });
     this.panelEl = this.el.createDiv({
@@ -380,6 +384,24 @@ class Rail {
 
     this.apply();
     this.refresh();
+  }
+
+  /** styles.css 在 .gg-outline 上定了 --gg-outline-styled：读得到说明样式已生效，可以显示了 */
+  waitForStyles() {
+    const started = Date.now();
+    const check = () => {
+      this.styleRaf = 0;
+      if (!this.el.isConnected) return;
+      const ready = getComputedStyle(this.el).getPropertyValue('--gg-outline-styled').trim() === '1';
+      if (ready || Date.now() - started > 10000) {
+        this.el.style.removeProperty('display');
+        this.railKey = '';
+        this.queueLayout();
+        return;
+      }
+      this.styleRaf = window.requestAnimationFrame(check);
+    };
+    check();
   }
 
   /** 「完整大纲常驻展开」（#1）：面板一直开着、贴在笔记边上，正文让出位置；手机上屏幕太窄，不生效 */
@@ -1540,6 +1562,7 @@ class Rail {
   destroy() {
     if (this.raf) cancelAnimationFrame(this.raf);
     if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
+    if (this.styleRaf) cancelAnimationFrame(this.styleRaf);
     if (this.searchRaf) cancelAnimationFrame(this.searchRaf);
     this.removeMobileListeners();
     if (this.resizeObs) this.resizeObs.disconnect();

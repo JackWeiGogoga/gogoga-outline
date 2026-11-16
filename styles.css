@@ -4,6 +4,8 @@
    give the motion its liquid trailing feel. */
 
 .gg-outline {
+  /* 脚本读这个值判断样式已经加载，之前大纲先藏着（见 waitForStyles） */
+  --gg-outline-styled: 1;
   position: absolute;
   top: 50%;
   transform: translateY(-50%);

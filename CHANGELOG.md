@@ -12,6 +12,7 @@ All notable changes to gogoga outline are listed here. The format follows [Keep 
   - Lag: editing text without touching headings no longer rebuilds the whole outline; the rail is no longer rebuilt on every frame of the keyboard animation; search results are reused, so each keystroke only updates the rows that changed, without starting transitions on hundreds of rows.
   - Touching the rail on a touch screen no longer pops up the section preview.
 - Matches marked on the rail during a search are no longer lost when the rail is rebuilt (for example after the window height changes).
+- Turning the plugin on made the full outline flash and slide away, and the first note opened after Obsidian started could lose the buttons at its top right, leaving a blank strip (#2, reported by RainyGrass). The stylesheet arrived a moment after the outline was built, so the unstyled outline briefly spread across the note. The outline now stays hidden until its styles are in.
 
 ## [0.7.0] - 2026-11-16
 
