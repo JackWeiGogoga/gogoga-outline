@@ -30,7 +30,10 @@ On phones, where moving files around is awkward, use the community plugins brows
 ## What it does
 
 - **At rest**: a column of identical short dashes, one per heading. The dash
-  for the section you are currently reading is accent-colored.
+  for the section you are currently reading is accent-colored. In a long note
+  whose dashes would not fit, the rail still stays within the window: only the
+  higher-level headings get a dash (the hidden ones count toward the dash above
+  them), and clicking anywhere on the rail jumps to the nearest dash.
 - **On hover**: a dock-style wave. Each dash grows by a gaussian falloff of
   its distance to the cursor, so the crest follows the pointer continuously
   rather than snapping between items.
@@ -97,6 +100,10 @@ A few more panel options, all off by default:
   front of headings: click to expand or collapse one level, double-click to
   expand the whole branch; ←/→ work too when the panel has focus.
 - `Show full titles`: long headings wrap instead of being cut off.
+- `Show headings in their heading style`: each row in the full outline takes
+  the color, weight and font your theme gives that heading level, with its
+  size scaled slightly by level too, so levels are easier to tell apart; the
+  row you are reading stays accent-colored.
 
 `$formulas$` in headings render in the panel and the preview card.
 
