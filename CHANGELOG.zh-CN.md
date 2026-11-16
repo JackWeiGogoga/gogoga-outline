@@ -4,6 +4,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-17
+
 ### 新增
 - 设置「标题折叠箭头」（默认关，#2 RainyGrass 的建议）：完整大纲里有子标题的行前面显示小箭头，默认全部展开，单击折叠或展开这一节，双击展开它下面的全部标题；折叠状态在这篇笔记打开期间保留。
 - 「其他标题显示到第几级」加了「全部」：打开「只展开当前标题」时，可以让其余标题不自动折叠，只收起手动点过的。
@@ -91,7 +93,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1

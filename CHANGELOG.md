@@ -4,6 +4,8 @@ All notable changes to gogoga outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-17
+
 ### Added
 - "Fold arrows" setting (off by default, suggested by RainyGrass in #2): headings with subheadings get an arrow in the full outline and everything starts unfolded; click to fold or unfold that section, double-click to unfold everything under it. Folds last while the note stays open.
 - "Levels shown for other headings" has an "All" option, so with "Expand only the current heading" on the rest of the outline can stay unfolded except for the arrows you click.
@@ -91,7 +93,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...HEAD
+[0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
 [0.5.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.0...0.5.1
