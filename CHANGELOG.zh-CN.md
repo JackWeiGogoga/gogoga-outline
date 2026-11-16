@@ -1,8 +1,13 @@
 # 更新日志
 
-gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。English: [CHANGELOG.md](CHANGELOG.md).
+gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/)，版本号遵循[语义化版本](https://semver.org/lang/zh-CN/)。English: [CHANGELOG.md](CHANGELOG.md).
 
 ## [Unreleased]
+
+## [0.8.1] - 2026-11-17
+
+### 变更
+- 插件名改为 gogoga Outline（首字母大写），和其他 gogoga 插件统一。插件 id 没变，设置和快捷键都不受影响。
 
 ## [0.8.0] - 2026-11-17
 
@@ -93,7 +98,8 @@ gogoga outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0

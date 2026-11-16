@@ -1,8 +1,13 @@
 # Changelog
 
-All notable changes to gogoga outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
+All notable changes to gogoga Outline are listed here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow [Semantic Versioning](https://semver.org/). 中文版见 [CHANGELOG.zh-CN.md](CHANGELOG.zh-CN.md).
 
 ## [Unreleased]
+
+## [0.8.1] - 2026-11-17
+
+### Changed
+- Renamed to gogoga Outline (capitalized) to match the other gogoga plugins. The plugin id is unchanged, so settings and hotkeys carry over.
 
 ## [0.8.0] - 2026-11-17
 
@@ -93,7 +98,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...HEAD
+[0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.5.1...0.6.0
