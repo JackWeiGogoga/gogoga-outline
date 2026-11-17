@@ -505,7 +505,14 @@
   max-height: none;
 }
 .gg-outline-mobile.gg-outline-is-expanded .gg-outline-list,
-.gg-outline-mobile .gg-outline-preview { display: none; }
+.gg-outline-mobile:not(.gg-outline-scrubbing) .gg-outline-preview { display: none; }
+/* 手指按得住：导轨左右多留点，长按不弹系统的选字、菜单 */
+.gg-outline.gg-outline-mobile .gg-outline-list { padding-inline: 10px; }
+.gg-outline-list {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+}
 .gg-outline.gg-outline-mobile .gg-outline-panel {
   top: 0;
   max-height: 100%;
@@ -534,3 +541,16 @@
 /* 手机上折叠箭头点的区域大一点 */
 .gg-outline-mobile.gg-outline-folding .gg-outline-arrow { width: 24px; height: 24px; margin-inline-start: -8px; }
 .gg-outline-mobile .gg-outline-arrow svg { width: 16px; height: 16px; }
+
+/* 触屏长按导轨拖动：旁边只浮出标题，紧跟手指 */
+.gg-outline.gg-outline-scrubbing .gg-outline-preview {
+  width: max-content;
+  max-width: min(260px, calc(100vw - 80px));
+  padding: 8px 12px;
+  transition: opacity 120ms ease, visibility 120ms, top 60ms linear;
+}
+.gg-outline-scrubbing .gg-outline-preview-title {
+  margin-bottom: 0;
+  font-size: 15px;
+}
+.gg-outline-scrubbing .gg-outline-search-btn { display: none; }

@@ -206,6 +206,9 @@ const RAIL_GAP = 4;
 /* Expansion */
 const DWELL_TOL = 6;     // px of drift that still counts as holding still
 const CLOSE_GRACE = 180; // ms of slack for crossing the rail/panel gap
+const LONG_PRESS = 300;  // 触屏：按住导轨这么久进入拖动
+const PRESS_SLOP = 10;   // 按住期间手指挪出这么远就算在滑正文，不进拖动
+const TOUCH_MOUSE = 800; // 手指抬起后浏览器补发的 mouse 事件、click 在这段时间里不理
 const INDENT_STEP = 12;  // px of indent per heading level
 const STAGGER = 6;       // ms between row fade-ins
 const STAGGER_CAP = 14;  // rows past this all share the last delay
@@ -371,7 +374,22 @@ class Rail {
     });
     this.searchBtn.addEventListener('mouseenter', () => this.cancelClose());
 
-    this.listEl.addEventListener('mousemove', (e) => this.queueWave(e));
+    this.listEl.addEventListener('mousemove', (e) => {
+      if (Date.now() - this.touchAt < TOUCH_MOUSE) return;
+      this.queueWave(e);
+    });
+    // 触屏（手机用户反馈）：点导轨不再直接跳——滑正文时手指擦到导轨就误跳了。改成长按导轨进入拖动：
+    // 短横跟着手指起波浪、旁边浮出标题，正文实时滚到那一节，松手就停在那里；相当于带目录的滚动条
+    this.touch = null;
+    this.touchAt = 0;
+    this.pressTimer = 0;
+    this.scrubRaf = 0;
+    this.listEl.addEventListener('touchstart', (e) => this.onTouchStart(e), { passive: true });
+    this.listEl.addEventListener('touchmove', (e) => this.onTouchMove(e), { passive: false });
+    this.listEl.addEventListener('touchend', (e) => this.onTouchEnd(e));
+    this.listEl.addEventListener('touchcancel', () => this.endScrub());
+    // 安卓长按会弹上下文菜单
+    this.listEl.addEventListener('contextmenu', (e) => e.preventDefault());
     // Buttons grab focus on mousedown; letting them would pull the
     // caret out of the editor and make CodeMirror scroll it back into
     // view, landing us somewhere other than the heading.
@@ -379,6 +397,8 @@ class Rail {
     // 点导轨上任意位置都跳到离鼠标最近的那条（以前要正好点中 2px 高的短横，点在空隙里没反应）
     this.listEl.addEventListener('click', (e) => {
       e.preventDefault();
+      // 手指点的（浏览器补发的 click）：触屏只认长按拖动
+      if (Date.now() - this.touchAt < TOUCH_MOUSE) return;
       const k = this.nearestItem(e.clientY);
       // With the panel open the dashes scrub it; a click commits.
       if (k >= 0) this.jumpTo(this.railIdx[k]);
@@ -1321,11 +1341,100 @@ class Rail {
           // The panel already shows every heading, so the rail scrubs it
           // instead of stacking a preview card on top of it.
           this.setFocusRow(this.rowIndexFor(this.hoverIndex), true);
+        } else if (this.touch && this.touch.live) {
+          this.showPreview(this.hoverIndex, items[nearest], true);
         } else if (this.plugin.settings.showPreview && !this.mobile) {
           this.showPreview(this.hoverIndex, items[nearest]);
         }
       }
     }
+  }
+
+  /* ---------------- 触屏：长按导轨拖动 ---------------- */
+
+  onTouchStart(e) {
+    this.touchAt = Date.now();
+    window.clearTimeout(this.pressTimer);
+    // 两根手指（缩放）、面板开着：不管
+    if (e.touches.length !== 1 || this.expanded) {
+      this.endScrub();
+      return;
+    }
+    const t = e.touches[0];
+    this.touch = { x: t.clientX, y: t.clientY, live: false, last: -1 };
+    this.pressTimer = window.setTimeout(() => this.startScrub(), LONG_PRESS);
+  }
+
+  onTouchMove(e) {
+    this.touchAt = Date.now();
+    const s = this.touch;
+    if (!s) return;
+    const t = e.touches[0];
+    if (!s.live) {
+      // 还没按够就挪开了：是在滑正文，交给浏览器滚
+      if (Math.hypot(t.clientX - s.x, t.clientY - s.y) > PRESS_SLOP) this.endScrub();
+      return;
+    }
+    // 浏览器已经接手滚动（按住时手指漂了几像素），拦不住了，就不拖
+    if (!e.cancelable) {
+      this.endScrub();
+      return;
+    }
+    e.preventDefault();
+    e.stopPropagation();
+    s.y = t.clientY;
+    if (this.scrubRaf) return;
+    this.scrubRaf = window.requestAnimationFrame(() => {
+      this.scrubRaf = 0;
+      this.scrubAt();
+    });
+  }
+
+  onTouchEnd(e) {
+    this.touchAt = Date.now();
+    // 拖过的：不让浏览器再补发 click
+    if (this.touch && this.touch.live && e.cancelable) e.preventDefault();
+    this.endScrub();
+  }
+
+  startScrub() {
+    const s = this.touch;
+    if (!s || s.live || this.expanded) return;
+    s.live = true;
+    this.el.addClass('gg-outline-scrubbing');
+    this.cancelDwell();
+    try {
+      if (navigator.vibrate) navigator.vibrate(8);
+    } catch (err) {
+      /* 不支持震动 */
+    }
+    this.scrubAt();
+  }
+
+  /** 波浪对到手指上；手指下的标题换了就把正文滚过去 */
+  scrubAt() {
+    const s = this.touch;
+    if (!s || !s.live) return;
+    this.wave(s.y);
+    const index = this.hoverIndex;
+    if (index >= 0 && index !== s.last) {
+      s.last = index;
+      this.scrollTo(index);
+    }
+  }
+
+  endScrub() {
+    window.clearTimeout(this.pressTimer);
+    this.pressTimer = 0;
+    if (this.scrubRaf) {
+      cancelAnimationFrame(this.scrubRaf);
+      this.scrubRaf = 0;
+    }
+    const live = this.touch && this.touch.live;
+    this.touch = null;
+    if (!live) return;
+    this.el.removeClass('gg-outline-scrubbing');
+    this.resetWave();
   }
 
   resetWave() {
@@ -1554,15 +1663,17 @@ class Rail {
     return text.length > max ? text.slice(0, max) + '…' : text;
   }
 
-  showPreview(index, anchor) {
-    const body = this.sectionPreview(index);
+  /** titleOnly：触屏拖动时只浮出标题 */
+  showPreview(index, anchor, titleOnly) {
     this.previewEl.empty();
     const title = this.previewEl.createDiv({ cls: 'gg-outline-preview-title' });
     if (fillHeading(title, this.headings[index].heading) && typeof finishRenderMath === 'function') finishRenderMath();
-    this.previewEl.createDiv({
-      cls: 'gg-outline-preview-body',
-      text: body || t('previewEmpty'),
-    });
+    if (!titleOnly) {
+      this.previewEl.createDiv({
+        cls: 'gg-outline-preview-body',
+        text: this.sectionPreview(index) || t('previewEmpty'),
+      });
+    }
     // Center on the crest dash, clamped so the card never leaves the pane.
     const host = this.view.contentEl.getBoundingClientRect();
     const railTop = this.el.getBoundingClientRect().top - host.top;
@@ -1582,6 +1693,7 @@ class Rail {
     if (this.layoutRaf) cancelAnimationFrame(this.layoutRaf);
     if (this.styleRaf) cancelAnimationFrame(this.styleRaf);
     if (this.searchRaf) cancelAnimationFrame(this.searchRaf);
+    this.endScrub();
     this.removeMobileListeners();
     if (this.resizeObs) this.resizeObs.disconnect();
     this.cancelDwell();
