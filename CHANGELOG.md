@@ -4,6 +4,9 @@ All notable changes to gogoga Outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+- On desktop, after opening the outline from the search box (or the magnifier or a command), clicking the note or anywhere else didn't close the panel — only Esc did (user report). Clicking outside the outline now closes it and clears the search, as on mobile. A docked outline still stays open; with "Keep the outline open after clicking", clicking a heading keeps it open and clicking the note closes it.
+
 ## [0.8.1] - 2026-11-17
 
 ### Changed

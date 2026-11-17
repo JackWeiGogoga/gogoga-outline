@@ -46,7 +46,7 @@ const STRINGS = {
     dockedName: 'Keep the full outline open',
     dockedDesc: 'Show the full outline at the edge of the note all the time instead of the rail, like a docked outline panel. The note makes room for it. Not on phones.',
     stayOpenName: 'Keep the outline open after clicking',
-    stayOpenDesc: 'Clicking a heading scrolls to it and leaves the outline open. Close it with Esc or the command.',
+    stayOpenDesc: 'Clicking a heading scrolls to it and leaves the outline open. Close it with Esc, the command, or by clicking outside it.',
     focusBranchName: 'Expand only the current heading',
     focusBranchDesc: 'The heading you are reading (or just clicked) is expanded all the way, with the headings above it opened; everything else folds down to the level set below. Arrows in front of headings expand one level on click, everything on double-click.',
     otherDepthName: 'Levels shown for other headings',
@@ -104,7 +104,7 @@ const STRINGS = {
     dockedName: '完整大纲常驻展开',
     dockedDesc: '不用悬停，完整大纲一直显示在笔记边上（代替导轨），正文给它让出位置。手机上不生效。',
     stayOpenName: '点击标题后保持大纲打开',
-    stayOpenDesc: '点一个标题跳过去，大纲不收起，按 Esc 或再用一次命令关掉',
+    stayOpenDesc: '点一个标题跳过去，大纲不收起，按 Esc、再用一次命令或点大纲外面关掉',
     focusBranchName: '只展开当前标题',
     focusBranchDesc: '正在看的（或刚点的）标题全部展开，它的上级一路打开，其余标题折叠到下面设的层级；标题前的小箭头单击展开一层、双击全部展开',
     otherDepthName: '其他标题显示到第几级',
@@ -314,13 +314,16 @@ class Rail {
     this.dwellAnchor = null;
     this.onScroll = () => this.syncActive();
     this.onDocKey = (e) => this.handleDocKey(e);
-    // 手机、平板：触屏上没有鼠标移开、没有 Esc，点面板外面收起；键盘弹出时面板跟着可见区域缩
+    // 点面板外面收起：手机、平板上触屏没有鼠标移开、没有 Esc，面板开着就算；
+    // 桌面上只管固定住的面板（点了搜索框、用命令打开），没固定的鼠标移开就收了（用户反馈：点了搜索再点正文不收，只能按 Esc）。
+    // 键盘弹出时面板跟着可见区域缩
     this.mobile = Platform.isMobile;
     this.layoutRaf = 0;
     this.searchRaf = 0;
     this.onOutside = (e) => {
       if (!this.expanded || this.docked()) return;
       if (this.el.contains(e.target)) return;
+      if (!this.mobile && !this.pinned) return;
       this.collapse();
     };
     this.onViewport = () => this.queueLayout();
@@ -867,9 +870,9 @@ class Rail {
     this.panelEl.removeClass('is-anchored');
     this.panelEl.style.removeProperty('--gg-panel-shift');
     this.el.addClass('gg-outline-is-expanded');
+    if (!this.docked()) document.addEventListener('pointerdown', this.onOutside, true);
     if (this.mobile && !this.docked()) {
       this.layoutMobile();
-      document.addEventListener('pointerdown', this.onOutside, true);
       if (window.visualViewport) {
         window.visualViewport.addEventListener('resize', this.onViewport);
         window.visualViewport.addEventListener('scroll', this.onViewport);
@@ -922,6 +925,7 @@ class Rail {
     if (this.mobile) this.queueLayout();
   }
 
+  /** 收起、卸载时拆掉：点外面收起（桌面也挂）、手机的可见区域监听 */
   removeMobileListeners() {
     document.removeEventListener('pointerdown', this.onOutside, true);
     if (window.visualViewport) {
