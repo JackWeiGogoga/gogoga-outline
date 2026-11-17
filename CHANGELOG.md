@@ -4,6 +4,14 @@ All notable changes to gogoga Outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-17
+
+### Added
+- Long-press the rail on phones and tablets to drag through the outline (user suggestion): the dashes ripple under your finger, the heading name floats beside it, and the note scrolls to that section as you slide up and down — like a scrollbar with a table of contents. Lift your finger to stay there.
+
+### Changed
+- On touch screens, a quick tap on the rail no longer jumps to a heading, so brushing the rail while scrolling the note doesn't send you elsewhere. Swiping that starts on the rail still scrolls the note as usual.
+
 ## [0.8.2] - 2026-11-17
 
 ### Fixed
@@ -103,7 +111,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0

@@ -4,6 +4,14 @@ gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-17
+
+### 新增
+- 手机、平板上长按导轨拖动（用户建议）：长按后上下滑，短横跟着手指起波浪，旁边浮出标题，正文实时滚到那一节，就像带目录的滚动条；松手就停在那里。
+
+### 变更
+- 触屏上轻点导轨不再跳转，滑正文时手指擦到导轨也不会误跳；从导轨上开始滑照样滚动正文。
+
 ## [0.8.2] - 2026-11-17
 
 ### 修复
@@ -103,7 +111,8 @@ gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.9.0...HEAD
+[0.9.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
