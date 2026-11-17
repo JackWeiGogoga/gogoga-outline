@@ -4,6 +4,8 @@ All notable changes to gogoga Outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-17
+
 ### Fixed
 - On desktop, after opening the outline from the search box (or the magnifier or a command), clicking the note or anywhere else didn't close the panel — only Esc did (user report). Clicking outside the outline now closes it and clears the search, as on mobile. A docked outline still stays open; with "Keep the outline open after clicking", clicking a heading keeps it open and clicking the note closes it.
 
@@ -101,7 +103,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0

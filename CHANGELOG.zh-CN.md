@@ -4,6 +4,8 @@ gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-11-17
+
 ### 修复
 - 桌面端点了搜索框（或放大镜、命令）打开大纲后，再点正文或别处，面板不收起，只能按 Esc（用户反馈）。现在点大纲以外的地方就收起，搜索词一起清掉，和手机上一样。常驻展开时照旧一直开着；开了「点击标题后保持大纲打开」时，点标题不收，点正文收。
 
@@ -101,7 +103,8 @@ gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...HEAD
+[0.8.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
 [0.8.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.7.0...0.8.0
 [0.7.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.6.0...0.7.0
