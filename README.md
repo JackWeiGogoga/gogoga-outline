@@ -2,6 +2,8 @@
 
 **English** | [简体中文](https://github.com/JackWeiGogoga/gogoga-outline/blob/main/README.zh-CN.md)
 
+**Website:** [obsidian.gogoga.top](https://obsidian.gogoga.top/en/plugins/gogoga-outline/) — screenshots, features and downloads.
+
 A heading rail pinned to the edge of the editor, in the style of Codex's
 document navigator. Companion to the [gogoga](https://github.com/JackWeiGogoga/gogoga-theme) theme, but it depends
 on nothing from the theme and works anywhere.

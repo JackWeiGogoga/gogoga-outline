@@ -2,6 +2,8 @@
 
 [English](https://github.com/JackWeiGogoga/gogoga-outline/blob/main/README.md) | **简体中文**
 
+**官网：**[obsidian.gogoga.top](https://obsidian.gogoga.top/plugins/gogoga-outline/)，截图、功能介绍和下载。
+
 一条固定在编辑区边缘的标题导轨，风格参照 Codex 的文档导航。它是
 [gogoga](https://github.com/JackWeiGogoga/gogoga-theme) 主题的配套插件，但不依赖主题的任何东西，
 单独使用也没问题。
