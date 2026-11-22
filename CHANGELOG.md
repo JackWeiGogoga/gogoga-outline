@@ -4,6 +4,15 @@ All notable changes to gogoga Outline are listed here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-23
+
+### Added
+- Quieter rail options (the rail felt distracting, per the user group): "Dash length" shortens the rail's dashes (4–16 px, default 12), and "Hide the rail until the pointer is near" keeps it invisible until the pointer comes near that edge of the note; an open panel shows as usual. Not on phones and tablets, which have no hover.
+- With "Keep the full outline open" on, drag the panel's inner edge to resize it, like the divider between split panes in Obsidian; it works with a finger on phones and tablets too. The width is saved to the Panel width setting, and double-clicking the edge resets it (suggested in the user group). The setting's range is now 140–600.
+
+### Fixed
+- On tablets in split screen, "Keep the full outline open" was unreliable: after jumping to a heading and scrolling a little, the outline closed but the note still left room for it (reported in the user group). Split screen narrows the window and Obsidian switches to its phone layout, which the plugin took for a phone; it now checks the device's screen, so tablets keep the outline open in split screen, and the panel and the note's spacing update together when the window size changes.
+
 ## [0.9.0] - 2026-11-17
 
 ### Added
@@ -111,7 +120,8 @@ First public release.
 - Rest the pointer on the rail to unfold the whole outline; a command opens it pinned with keyboard navigation.
 - Accurate jumps in both reading and editing mode, with one rail per pane.
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1

@@ -70,13 +70,17 @@
    feel liquid instead of jittery. */
 .gg-outline-tick {
   flex: 0 0 auto;
-  width: 12px;
+  width: var(--gg-tick-w, 12px);
   height: 2px;
   border-radius: 2px;
   background: color-mix(in srgb, var(--text-faint) 75%, transparent);
   transition: width 140ms ease-out, height 140ms ease-out,
     background-color 160ms ease;
 }
+
+/* 平时隐藏导轨（设置里）：看不见但还在原处，鼠标靠近那一侧边缘（JS 加 .gg-outline-near）或移到导轨上时浮出来；面板展开时照常 */
+.gg-outline-autohide .gg-outline-list { transition: opacity 180ms ease; }
+.gg-outline-autohide:not(.gg-outline-near):not(.gg-outline-is-expanded) .gg-outline-list:not(:hover) { opacity: 0; }
 
 /* Names the dash for screen readers without an aria-label, which
    Obsidian would turn into a tooltip */
@@ -385,6 +389,39 @@
 .gg-outline-docked-host[data-gg-outline-side="left"] .markdown-preview-view {
   padding-left: calc(var(--gg-panel-width, 240px) + 24px);
 }
+
+/* 常驻时拖面板朝正文那边的边改宽度（群友建议，像 Obsidian 分屏的分隔条）；触屏上拖的范围宽一点 */
+.gg-outline-resizer { display: none; }
+.gg-outline.gg-outline-docked .gg-outline-resizer {
+  display: block;
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 10px;
+  z-index: 2;
+  cursor: col-resize;
+  touch-action: none;
+  pointer-events: auto;
+}
+.gg-outline.gg-outline-docked[data-side="right"] .gg-outline-resizer { left: -5px; }
+.gg-outline.gg-outline-docked[data-side="left"] .gg-outline-resizer { right: -5px; }
+.is-mobile .gg-outline.gg-outline-docked .gg-outline-resizer { width: 22px; }
+.is-mobile .gg-outline.gg-outline-docked[data-side="right"] .gg-outline-resizer { left: -11px; }
+.is-mobile .gg-outline.gg-outline-docked[data-side="left"] .gg-outline-resizer { right: -11px; }
+.gg-outline-resizer::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 2px;
+  transform: translateX(-50%);
+  background: transparent;
+  transition: background-color 0.15s;
+}
+.gg-outline-resizer:hover::after,
+.gg-outline-resizing .gg-outline-resizer::after { background: var(--interactive-accent); }
+.gg-outline-resizing { user-select: none; }
 
 /* ---------------- 搜索标题（#2） ---------------- */
 

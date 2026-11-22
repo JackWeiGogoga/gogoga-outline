@@ -27,6 +27,10 @@ const STRINGS = {
     previewEmpty: 'No content in this section yet',
     sideName: 'Position',
     sideDesc: 'Which side of the editor the outline rail sits on.',
+    tickWidthName: 'Dash length',
+    tickWidthDesc: 'How long the rail\'s dashes are at rest, in pixels (default 12). Shorter is less in the way.',
+    autoHideName: 'Hide the rail until the pointer is near',
+    autoHideDesc: 'The rail stays invisible and fades in when the pointer comes near that edge of the note. Not on phones and tablets (no hover there).',
     sideRight: 'Right',
     sideLeft: 'Left',
     minHeadingsName: 'Minimum headings',
@@ -41,6 +45,8 @@ const STRINGS = {
     dwellDelayName: 'Rest delay',
     dwellDelayDesc: 'How long the pointer must stay still before the outline opens, in milliseconds.',
     panelWidthName: 'Panel width',
+    panelWidthDesc: 'With the outline kept open you can also drag its inner edge; double-click the edge to reset.',
+    resizeTip: 'Drag to resize · double-click to reset',
     panelMaxLevelName: 'Panel depth',
     panelMaxLevelDesc: 'Headings deeper than this are left out of the panel but keep their dash on the rail.',
     dockedName: 'Keep the full outline open',
@@ -85,6 +91,10 @@ const STRINGS = {
     previewEmpty: '（本节暂无正文）',
     sideName: '显示位置',
     sideDesc: '大纲导轨贴在编辑区的哪一侧',
+    tickWidthName: '短横长度',
+    tickWidthDesc: '导轨上短横平时的长度（像素，默认 12），短一些不那么碍眼',
+    autoHideName: '平时隐藏导轨',
+    autoHideDesc: '导轨平时看不见，鼠标移到笔记那一侧的边缘时才浮出来。手机、平板上不生效（没有鼠标悬停）',
     sideRight: '右侧',
     sideLeft: '左侧',
     minHeadingsName: '最少标题数',
@@ -99,6 +109,8 @@ const STRINGS = {
     dwellDelayName: '停留延迟',
     dwellDelayDesc: '鼠标静止多久后展开（毫秒）',
     panelWidthName: '面板宽度',
+    panelWidthDesc: '常驻展开时也可以直接拖面板朝正文那边的边，双击那条边恢复默认。',
+    resizeTip: '拖动调整宽度 · 双击恢复默认',
     panelMaxLevelName: '面板展开层级',
     panelMaxLevelDesc: '比这更深的标题不进入面板，但导轨上仍然有它的刻度',
     dockedName: '完整大纲常驻展开',
@@ -168,6 +180,8 @@ try {
 
 const DEFAULTS = {
   side: 'right',
+  railTickWidth: 12,
+  railAutoHide: false,
   minHeadings: 2,
   showPreview: true,
   previewChars: 140,
@@ -293,6 +307,16 @@ function plainText(md) {
     .trim();
 }
 
+/**
+ * 是不是手机：看设备屏幕的短边，不看窗口。平板分屏后窗口变窄，Obsidian 会把界面切成手机样式（Platform.isPhone 变成 true），
+ * 可它还是平板：常驻大纲照样要开着（群友反馈：分屏后点了标题，大纲就收起来了，正文让出的位置却还空着）
+ */
+function phoneDevice() {
+  if (!Platform.isPhone) return false;
+  const s = window.screen;
+  return !s || Math.min(s.width, s.height) < 600;
+}
+
 class Rail {
   constructor(plugin, view) {
     this.plugin = plugin;
@@ -352,6 +376,23 @@ class Rail {
     });
     this.searchCount = this.searchEl.createSpan({ cls: 'gg-outline-search-count' });
     this.panelListEl = this.panelEl.createDiv({ cls: 'gg-outline-panel-list' });
+    // 常驻时面板朝正文那边的竖边能拖，像 Obsidian 分屏中间的分隔条（群友建议）；松手记进设置的「面板宽度」，双击恢复默认
+    this.resizeEl = this.el.createDiv({ cls: 'gg-outline-resizer', attr: { 'aria-label': t('resizeTip') } });
+    this.resizeEl.addEventListener('pointerdown', (e) => this.startResize(e));
+    // 「平时隐藏导轨」：鼠标离笔记那一侧的边缘 56px 以内时浮出来
+    this.onEdgeNear = (e) => {
+      if (!this.el.hasClass('gg-outline-autohide')) return;
+      const r = this.view.contentEl.getBoundingClientRect();
+      const d = this.plugin.settings.side === 'left' ? e.clientX - r.left : r.right - e.clientX;
+      this.el.toggleClass('gg-outline-near', d >= 0 && d <= 56);
+    };
+    this.onEdgeLeave = () => this.el.removeClass('gg-outline-near');
+    view.contentEl.addEventListener('mousemove', this.onEdgeNear);
+    view.contentEl.addEventListener('mouseleave', this.onEdgeLeave);
+    this.resizeEl.addEventListener('dblclick', (e) => {
+      e.preventDefault();
+      this.setWidth(DEFAULTS.panelWidth, true);
+    });
     this.resultsEl = this.panelEl.createDiv({ cls: 'gg-outline-results' });
     this.searchInput.addEventListener('input', () => this.setQuery(this.searchInput.value));
     // 点进搜索框：面板固定住，鼠标移开也不收
@@ -434,9 +475,57 @@ class Rail {
     check();
   }
 
+  /** 短横平时的长度 */
+  tickWidth() {
+    const w = Number(this.plugin.settings.railTickWidth);
+    return Number.isFinite(w) ? Math.max(3, Math.min(24, w)) : BASE_W;
+  }
+
+  /** 拖面板边：随手指、鼠标改宽度（只改这一页的样式，不重建），松手才存 */
+  startResize(e) {
+    if (!this.docked() || e.button > 0) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const start = this.plugin.settings.panelWidth;
+    const right = this.plugin.settings.side !== 'left';
+    const x0 = e.clientX;
+    const handle = this.resizeEl;
+    handle.setPointerCapture(e.pointerId);
+    this.el.addClass('gg-outline-resizing');
+    let w = start;
+    const move = (ev) => {
+      w = this.clampWidth(start + (right ? x0 - ev.clientX : ev.clientX - x0));
+      this.setWidth(w, false);
+    };
+    const end = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', end);
+      handle.removeEventListener('pointercancel', end);
+      this.el.removeClass('gg-outline-resizing');
+      if (w !== start) this.setWidth(w, true);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+  }
+
+  /** 面板宽度的范围：至少 140，最多给正文留 120（分屏窄的时候也拖得回来） */
+  clampWidth(w) {
+    const room = this.view.contentEl.getBoundingClientRect().width - 120;
+    return Math.round(Math.max(140, Math.min(Math.max(140, room), 800, w)));
+  }
+
+  setWidth(w, save) {
+    this.el.style.setProperty('--gg-panel-width', w + 'px');
+    this.view.contentEl.style.setProperty('--gg-panel-width', w + 'px');
+    if (!save) return;
+    this.plugin.settings.panelWidth = w;
+    void this.plugin.saveSettings();
+  }
+
   /** 「完整大纲常驻展开」（#1）：面板一直开着、贴在笔记边上，正文让出位置；手机上屏幕太窄，不生效 */
   docked() {
-    return !!this.plugin.settings.panelDocked && !Platform.isPhone;
+    return !!this.plugin.settings.panelDocked && !phoneDevice();
   }
 
   /** 常驻时把面板打开（标题够数才开），正文按面板宽度让位 */
@@ -459,6 +548,9 @@ class Rail {
     if (wasDocked && !this.docked()) this.collapse();
     this.el.dataset.side = this.plugin.settings.side;
     this.el.toggleClass('gg-outline-mobile', this.mobile && !this.docked());
+    // 短横长度、平时隐藏导轨（群友：导轨有点碍眼）；手机、平板没有悬停，不隐藏
+    this.el.style.setProperty('--gg-tick-w', this.tickWidth() + 'px');
+    this.el.toggleClass('gg-outline-autohide', !!this.plugin.settings.railAutoHide && !this.mobile);
     this.el.toggleClass('gg-outline-wrap', !!this.plugin.settings.panelWrap);
     // #2：按标题样式显示（默认关）
     this.el.toggleClass('gg-outline-hstyle', !!this.plugin.settings.panelHeadingStyle);
@@ -1324,7 +1416,7 @@ class Rail {
       const dy = y - c[i];
       const boost = Math.exp(-(dy * dy) / (2 * SIGMA * SIGMA));
       const tick = items[i].firstChild;
-      tick.style.width = BASE_W + MAX_EXTRA * boost + 'px';
+      tick.style.width = this.tickWidth() + MAX_EXTRA * boost + 'px';
       tick.style.height = BASE_H + MAX_EXTRA_H * boost + 'px';
     }
     this.boosted = next;
@@ -1701,6 +1793,8 @@ class Rail {
     document.removeEventListener('keydown', this.onDocKey, true);
     this.detachScroll();
     this.view.contentEl.removeClass('gg-outline-docked-host');
+    this.view.contentEl.removeEventListener('mousemove', this.onEdgeNear);
+    this.view.contentEl.removeEventListener('mouseleave', this.onEdgeLeave);
     this.el.remove();
   }
 }
@@ -1766,6 +1860,16 @@ module.exports = class GogogaOutline extends Plugin {
       })
     );
     this.app.workspace.onLayoutReady(sync);
+    // 窗口大小变了（平板分屏、转屏）：常驻与否可能跟着变，面板和正文的让位一起重新套，别一边变了一边没变
+    this.registerEvent(
+      this.app.workspace.on('resize', () => {
+        for (const rail of this.rails.values()) {
+          if (rail.el.hasClass('gg-outline-docked') === rail.docked()) continue;
+          rail.apply();
+          rail.refresh(true);
+        }
+      })
+    );
   }
 
   /** Every window's body, main window included. */
@@ -1870,6 +1974,30 @@ class GogogaOutlineSettings extends PluginSettingTab {
       );
 
     new Setting(containerEl)
+      .setName(t('tickWidthName'))
+      .setDesc(t('tickWidthDesc'))
+      .addSlider((s) =>
+        s
+          .setLimits(4, 16, 1)
+          .setDynamicTooltip()
+          .setValue(this.plugin.settings.railTickWidth)
+          .onChange(async (v) => {
+            this.plugin.settings.railTickWidth = v;
+            await this.plugin.saveSettings();
+          })
+      );
+
+    new Setting(containerEl)
+      .setName(t('autoHideName'))
+      .setDesc(t('autoHideDesc'))
+      .addToggle((tg) =>
+        tg.setValue(!!this.plugin.settings.railAutoHide).onChange(async (v) => {
+          this.plugin.settings.railAutoHide = v;
+          await this.plugin.saveSettings();
+        })
+      );
+
+    new Setting(containerEl)
       .setName(t('minHeadingsName'))
       .setDesc(t('minHeadingsDesc'))
       .addSlider((s) =>
@@ -1925,9 +2053,10 @@ class GogogaOutlineSettings extends PluginSettingTab {
 
     new Setting(containerEl)
       .setName(t('panelWidthName'))
+      .setDesc(t('panelWidthDesc'))
       .addSlider((s) =>
         s
-          .setLimits(180, 320, 10)
+          .setLimits(140, 600, 10)
           .setDynamicTooltip()
           .setValue(this.plugin.settings.panelWidth)
           .onChange(async (v) => {

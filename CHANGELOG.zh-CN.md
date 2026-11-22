@@ -4,6 +4,15 @@ gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 
 ## [Unreleased]
 
+## [0.10.0] - 2026-11-23
+
+### 新增
+- 导轨样式可以调（群友反馈：导轨有点碍眼）：设置「短横长度」把导轨上的短横调短（4～16 像素，默认 12）；「平时隐藏导轨」打开后导轨平时看不见，鼠标移到笔记那一侧的边缘时才浮出来，面板展开时照常。手机、平板上没有鼠标悬停，不隐藏。
+- 「完整大纲常驻展开」时可以直接拖面板朝正文那边的边来调宽度，像 Obsidian 分屏中间的分隔条，手机、平板上用手指拖也行；松手记进设置里的「面板宽度」，双击那条边恢复默认（群友建议）。设置里的宽度范围也放宽到 140～600。
+
+### 修复
+- 平板分屏后「完整大纲常驻展开」不稳：点标题跳转、再滑两下笔记，大纲就收起来了，正文让出的位置还空着（群友反馈）。分屏让窗口变窄后 Obsidian 会把界面切成手机样式，插件把它当成了手机；现在按设备的屏幕判断，平板分屏也照样常驻，窗口大小变化时面板和正文让位一起更新。
+
 ## [0.9.0] - 2026-11-17
 
 ### 新增
@@ -111,7 +120,8 @@ gogoga Outline 每个版本的主要变化都记在这里。格式参照 [Keep a
 - 鼠标在导轨上停一下就展开全局大纲；命令可以固定打开大纲，并用键盘上下选择。
 - 阅读模式和编辑模式都能准确跳转，分屏时每个窗格各有一条导轨。
 
-[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.9.0...HEAD
+[Unreleased]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.10.0...HEAD
+[0.10.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.9.0...0.10.0
 [0.9.0]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.2...0.9.0
 [0.8.2]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.1...0.8.2
 [0.8.1]: https://github.com/JackWeiGogoga/gogoga-outline/compare/0.8.0...0.8.1
